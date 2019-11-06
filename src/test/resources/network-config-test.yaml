@@ -1,0 +1,53 @@
+name: "Network-Config-Test"
+x-type: "hlfv1"
+description: "The network used in the integration tests"
+version: 1.0.0
+
+client:
+  organization: TestOrgA
+  credentialStore:
+    path: "/tmp/hfc-kvs"
+    cryptoStore:
+      path: "/tmp/hfc-cvs"
+    wallet: wallet-name
+
+channels:
+  atlchannel:
+    orderers:
+      - OrdererTestOrgA
+    peers:
+      TestOrgA:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+
+    chaincodes:
+      - bincc:v1.3
+
+organizations:
+  TestOrgA:
+    mspid: TestOrgA
+    peers:
+      - TestOrgA
+
+    adminPrivateKey:
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain-SDK-JAVA/src/main/resources/certs/user/user_sk
+
+    signedCert:
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain-SDK-JAVA/src/main/resources/certs/user/cert.pem
+
+orderers:
+  OrdererTestOrgA:
+    url: grpc://172.16.15.66:7050
+    grpcOptions:
+      grpc-max-send-message-length: 15
+      grpc.keepalive_time_ms: 360000
+      grpc.keepalive_timeout_ms: 180000
+
+peers:
+  TestOrgA:
+    url: grpc://172.16.15.66:7051
+    grpcOptions:
+      grpc.http2.keepalive_time: 15
+
