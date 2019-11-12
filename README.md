@@ -24,7 +24,7 @@ GeoTools & GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链
     $ ./<path-to-geoserver>/bin/startup.sh
     ```
 
-4. 打开 geoserver 页面，geoserver 默认地址为 http://127.0.0.1:8080/geoserver，默认用户名 `admin`，默认登录密码 `geoserver`，添加工作区，如下图:
+4. 打开 geoserver 页面，geoserver 默认地址为 [http://127.0.0.1:8080/geoserver](http://127.0.0.1:8080/geoserver)，默认用户名 `admin`，默认登录密码 `geoserver`，添加工作区，如下图:
 
     ![img](docs/images/create-workspace.png)
 
