@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/BL/BL.shp").getFile();
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
     private File shpFile = new File(shpURL);
 
     private String chaincodeName = "bcgiscc";
@@ -161,34 +161,6 @@ public class BCGISDataStoreTest {
         System.out.println("typenames: " + names.length);
         System.out.println("typename[0]: " + names[0]);
     }
-
-    // 以JFrame方式显示地图
-    public static void main(String[] args) throws IOException {
-        String LineKey = "30496f46583734b9b0c6d44ca11822a176e4bad9db24081dbbfc8f4e1ac0cbfb";
-        String DKey = "D";
-        BCGISDataStore bcgisDataStore = new BCGISDataStore(
-//                new File(BCGISDataStoreTest.class.getResource("/network-config-test.yaml").getPath()),
-                new File("/home/cy/Documents/ATL/SuperMap/ATLab-BCGIS/gt-bcgis/src/test/resources/network-config-test.yaml"),
-                "bcgiscc",
-                "GetRecordByKey",
-                DKey
-        );
-        SimpleFeatureSource simpleFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
-        simpleFeatureSource.getSchema();
-        String typeName = bcgisDataStore.getTypeNames()[0];
-        SimpleFeatureType type = bcgisDataStore.getSchema(typeName);
-
-        MapContent map = new MapContent();
-        map.setTitle("testBCGIS");
-//        Style style = SLD.createLineStyle(Color.BLACK, 2.0f);
-        Style style = SLD.createSimpleStyle(type);
-
-        Layer layer = new FeatureLayer(simpleFeatureSource, style);
-        map.addLayer(layer);
-        JMapFrame.showMap(map);
-    }
-
-    // test FeatureStore write function
 
     @Test
     public void testFeatureWrite() throws IOException {

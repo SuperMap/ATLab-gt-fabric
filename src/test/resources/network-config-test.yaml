@@ -4,7 +4,7 @@ description: "The network used in the integration tests"
 version: 1.0.0
 
 client:
-  organization: TestOrgA
+  organization: OrgA
   credentialStore:
     path: "/tmp/hfc-kvs"
     cryptoStore:
@@ -12,42 +12,64 @@ client:
     wallet: wallet-name
 
 channels:
-  atlchannel:
+  txchannel:
     orderers:
-      - OrdererTestOrgA
+      - Orderer2
     peers:
-      TestOrgA:
+      OrgA:
         endorsingPeer: true
         chaincodeQuery: true
         ledgerQuery: true
         eventSource: true
 
     chaincodes:
-      - bincc:v1.3
+      - bcgiscc:v1.0
 
 organizations:
-  TestOrgA:
-    mspid: TestOrgA
+  OrgA:
+    mspid: OrgA
     peers:
-      - TestOrgA
+      - OrgA
 
     adminPrivateKey:
-      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain-SDK-JAVA/src/main/resources/certs/user/user_sk
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain/ATLChain_NETWORK/crypto-config/peerOrganizations/orga.example.com/users/Admin@orga.example.com/msp/keystore/5e6ed6482a8c1c93d3fc0c1344fc63c8a32a987e79143b3598af1bc4708fe525_sk
 
     signedCert:
-      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain-SDK-JAVA/src/main/resources/certs/user/cert.pem
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain/ATLChain_NETWORK/crypto-config/peerOrganizations/orga.example.com/users/Admin@orga.example.com/msp/signcerts/Admin@orga.example.com-cert.pem
 
 orderers:
-  OrdererTestOrgA:
-    url: grpc://172.16.15.66:7050
+  Orderer2:
+    url: grpcs://orderer2.example.com:7050
+    tlsCACerts:
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain/ATLChain_NETWORK/crypto-config/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem
+
     grpcOptions:
       grpc-max-send-message-length: 15
       grpc.keepalive_time_ms: 360000
       grpc.keepalive_timeout_ms: 180000
 
 peers:
-  TestOrgA:
-    url: grpc://172.16.15.66:7051
+  OrgA:
+    url: grpcs://peer0.orga.example.com:7051
+    tlsCACerts:
+      path: /home/cy/Documents/ATL/SuperMap/ATLab-ATLChain/ATLChain_NETWORK/crypto-config/peerOrganizations/orga.example.com/tlsca/tlsca.orga.example.com-cert.pem
+
+
     grpcOptions:
       grpc.http2.keepalive_time: 15
 
+certificateAuthorities:
+  ca-org1:
+    url: http://localhost:7054
+    # the properties specified under this object are passed to the 'http' client verbatim when
+    # making the request to the Fabric-CA server
+    #    httpOptions:
+    #      verify: true
+
+    # Fabric-CA supports dynamic user enrollment via REST APIs. A "root" user, a.k.a registrar, is
+    # needed to enroll and invoke new users.
+    registrar: #single entitiy
+      enrollId: admin
+      enrollSecret: adminpw
+    # [Optional] The optional name of the CA.
+    caName:

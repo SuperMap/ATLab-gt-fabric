@@ -59,7 +59,7 @@ public class BlockChainClient {
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // 根据范围读取数据，范围按字典顺序排序
     public byte[][] getRecordByRange(String recordKey, String chaincodeName) {
-        String startKey = recordKey + "-0";
+        String startKey = recordKey + "-00000";
         String endKey = recordKey + "-99999";
 
         byte[][] result = atlChain.queryByte(
