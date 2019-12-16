@@ -1,5 +1,6 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.*;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
@@ -16,6 +17,7 @@ import org.geotools.swing.JMapFrame;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.ParseException;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
@@ -25,17 +27,17 @@ import org.opengis.filter.FilterFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/BL/BL.shp").getFile();
+    private String shpURL = this.getClass().getResource("/chenduqu/chengduqu.shp").getFile();  //  /Province/Province_R.shp  /D/D.shp  /chenduqu/chenduqu.shp
     private File shpFile = new File(shpURL);
-
     private String chaincodeName = "bcgiscc";
     private String functionName = "GetRecordByKey";
-    private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
+    private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4"; // 23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
+    //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+    //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
+    //  成都区            5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
     private File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
     private BCGISDataStore bcgisDataStore = new BCGISDataStore(
             networkFile,
@@ -162,32 +164,6 @@ public class BCGISDataStoreTest {
         System.out.println("typename[0]: " + names[0]);
     }
 
-    // 以JFrame方式显示地图
-    public static void main(String[] args) throws IOException {
-        String LineKey = "30496f46583734b9b0c6d44ca11822a176e4bad9db24081dbbfc8f4e1ac0cbfb";
-        String DKey = "D";
-        BCGISDataStore bcgisDataStore = new BCGISDataStore(
-//                new File(BCGISDataStoreTest.class.getResource("/network-config-test.yaml").getPath()),
-                new File("/home/cy/Documents/ATL/SuperMap/ATLab-BCGIS/gt-bcgis/src/test/resources/network-config-test.yaml"),
-                "bcgiscc",
-                "GetRecordByKey",
-                DKey
-        );
-        SimpleFeatureSource simpleFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
-        simpleFeatureSource.getSchema();
-        String typeName = bcgisDataStore.getTypeNames()[0];
-        SimpleFeatureType type = bcgisDataStore.getSchema(typeName);
-
-        MapContent map = new MapContent();
-        map.setTitle("testBCGIS");
-//        Style style = SLD.createLineStyle(Color.BLACK, 2.0f);
-        Style style = SLD.createSimpleStyle(type);
-
-        Layer layer = new FeatureLayer(simpleFeatureSource, style);
-        map.addLayer(layer);
-        JMapFrame.showMap(map);
-    }
-
     // test FeatureStore write function
 
     @Test
@@ -248,7 +224,39 @@ public class BCGISDataStoreTest {
         bcgisDataStore.dispose();
     }
 
-    // test putDataOnChain   result 即代表将数据存入到区块链之后返回的 hash 值  根据hash 值才可以从区块链上读取数据
+    /**
+     * 以JFrame方式显示地图
+     */
+    public static void main(String[] args) throws IOException {
+        String LineKey = "5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301";
+        //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+        //  中国地图       23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
+        //  成都区         5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
+        BCGISDataStore bcgisDataStore = new BCGISDataStore(
+                new File("\\E:\\DemoRecording\\A_SuperMap\\ATLab-gt-fabric\\src\\test\\resources\\network-config-test.yaml"),
+                "bcgiscc",
+                "GetRecordByKey",
+                LineKey
+        );
+        SimpleFeatureSource simpleFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
+
+
+        simpleFeatureSource.getSchema();
+        String typeName = bcgisDataStore.getTypeNames()[0];
+        SimpleFeatureType type = bcgisDataStore.getSchema(typeName);
+
+        MapContent map = new MapContent();
+        map.setTitle("北京");
+        Style style = SLD.createSimpleStyle(type);
+
+        Layer layer = new FeatureLayer(simpleFeatureSource, style);
+        map.addLayer(layer);
+        JMapFrame.showMap(map);
+    }
+
+    /**
+     * 通过 bcgis 插件将 shp 文件存入区块链网络
+     */
     @Test
     public void testPutDataOnBlockchain() throws IOException, InterruptedException {
         String result = bcgisDataStore.putDataOnBlockchain(shpFile);
@@ -256,19 +264,31 @@ public class BCGISDataStoreTest {
 //        Assert.assertTrue(result.contains("successfully"));
     }
 
-    // test getDataFromChain
+    /**
+     *  根据 hash 获取数据
+     */
     @Test
     public void testGetDataFromChain() {
         Geometry geometry = bcgisDataStore.getRecord();
         System.out.println(geometry.getNumGeometries());
     }
 
-    // 测试连续从区块链上读取数据看程序运行是否会崩溃
+    /**
+     *  测试couchDB 的富查询
+     *  根据属性值 D 和对应的 hash 值进行查询
+     *  return 得到 geometryCollection
+     */
     @Test
-    public void testRead(){
-        for(int i = 0;i < 1000;i++){
-            Geometry geometry = bcgisDataStore.getRecord();
-            System.out.println(geometry.getNumGeometries() + "=========" + i);
-        }
+    public void testGetRecordByAttributes(){
+        List<String> stringList = new ArrayList<>();
+        String key = "taiwan";
+        String hash = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
+        //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4      属性  D
+        //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8     属性 省市行政区名
+        stringList.add(key);
+        stringList.add(hash);
+        Geometry geometry = bcgisDataStore.getRecordByAttributes(stringList);
+        System.out.println(geometry);
+        System.out.println(geometry.getNumGeometries());
     }
 }

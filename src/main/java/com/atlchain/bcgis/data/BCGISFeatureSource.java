@@ -71,18 +71,18 @@ public class BCGISFeatureSource extends ContentFeatureSource {
             builder.add("geom", LineString.class);
         } else {
             String geometryType = geometry.getGeometryN(0).getGeometryType().toLowerCase();
-            if (geometryType.equals("point")) {
+            if(geometryType.equals("multipoint")) {
+                builder.add("geom", MultiPoint.class);
+            }else if(geometryType.equals("point")) {
                 builder.add("geom", Point.class);
-            } else if(geometryType.equals("multipoint")){
-                builder.add("geom",MultiPoint.class);
+            }else if(geometryType.equals("multilinestring")) {
+                builder.add("geom", MultiLineString.class);
             }else if(geometryType.equals("linestring")){
                 builder.add("geom",LineString.class);
-            }else if(geometryType.equals("multilinestring")){
-                builder.add("geom",MultiLineString.class);
-            }else if(geometryType.contains("polygon")){
-                builder.add("geom", Polygon.class);
-            } else if (geometryType.contains("multipolygon")) {
+            }else if (geometryType.contains("multipolygon")) {
                 builder.add("geom", MultiPolygon.class);
+            }else if(geometryType.contains("polygon")) {
+                builder.add("geom", Polygon.class);
             }
         }
 

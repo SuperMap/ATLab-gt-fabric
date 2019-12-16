@@ -1,5 +1,7 @@
 package com.atlchain.bcgis.data;
 
+import org.geotools.data.FileDataStore;
+import org.geotools.data.FileDataStoreFinder;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.jts.geom.Geometry;
@@ -13,80 +15,85 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Shp2WkbTest {
-//    private String shpURL = this.getClass().getResource("D/D.shp").getFile();//   /Point/Point
-    private String shpURL = "/home/cy/Documents/ATL/SuperMap/ATLab-BCGIS/gt-bcgis/src/test/resources/D/D.shp";
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();//   /Point/Point
     private File shpFile = new File(shpURL);
     private Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
     private BlockChainClient client;
-//    private File networkFile = new File(this.getClass().getResource("network-config-test.yaml").toURI());
-    private File networkFile = new File("/home/cy/Documents/ATL/SuperMap/ATLab-BCGIS/gt-bcgis/src/test/resources/network-config-test.yaml");
-
-    public Shp2WkbTest() throws URISyntaxException {
+    private File networkFile = new File("E:\\DemoRecording\\A_SuperMap\\ATLab-gt-fabric\\src\\test\\resources\\network-config-test.yaml");
+    public Shp2WkbTest(){
         client = new BlockChainClient(networkFile);
     }
 
     @Test
     public void testGetRightGeometryCollectionType() {
-        try {
-            Assert.assertEquals(ArrayList.class, shp2WKB.getGeometry().getClass());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Assert.assertEquals(ArrayList.class, shp2WKB.getGeometry().getClass());
     }
 
     @Test
     public void testGetRightGeometryValue() {
-        try {
-            ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
+        ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
 //            for(Geometry geom : geometryArrayList) {
 //                System.out.println(geom);
 //            }
-            Assert.assertNotNull(geometryArrayList);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Assert.assertNotNull(geometryArrayList);
     }
 
     @Test
     public void testSaveWKB(){
-        try {
-            String path = "E:\\DemoRecording\\WkbCode\\Line.wkb";
+            String path = "E:\\SuperMapData\\China\\Province_R.wkb";
             shp2WKB.save(new File(path));
-            Assert.assertTrue(Files.exists(Paths.get(path)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//            Assert.assertTrue(Files.exists(Paths.get(path)));
     }
 
+    /**
+     * 将 shp 数据整个以二进制的方式存取区块链
+     */
     @Test
-    public void testSaveGeometryToChain() throws IOException {
-        String key =  "D";
-        byte[] bytes = shp2WKB.getGeometryBytes();
-
-        String result = client.putRecord(
-                key,
-                bytes,
-                "bcgiscc",
-                "PutRecordBytes"
-        );
-        System.out.println(result);
+    public void testSaveGeometryToChain() {
+//        String key =  "D";
+//        byte[] bytes = shp2WKB.getGeometryBytes();
+//        String result = client.putRecord(
+//                key,
+//                bytes,
+//                "bcgiscc",
+//                "PutRecordBytes"
+//        );
+//        System.out.println(result);
     }
 
+    /**
+     *  根据 键 读取区块链上的二进制 gemetry
+     * @throws ParseException
+     */
     @Test
     public void testQueryGeometryFromChain() throws ParseException {
-        String key = "D";
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-00011";
         byte[][] result = client.getRecordBytes(
                 key,
                 "bcgiscc",
                 "GetRecordByKey"
         );
         Geometry geometry = Utils.getGeometryFromBytes(result[0]);
+        System.out.println(geometry);
         System.out.println(geometry.getNumGeometries());
     }
-
-    // 为区块链存证系统服务
+    //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+    //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
+    /**
+     * 根据 hashID 查询数据
+     */
     @Test
-    public void testSaveToChain() throws IOException {
+    public void testQueryFromChain(){
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
+        String value = client.getRecord(key,"bcgiscc");
+        System.out.println(value);
+    }
+
+    /**
+     * 直接指定 键-值 存入到区块链
+     */
+    @Test
+    public void testSaveToChain(){
         String key =  "testKey";
         String value = "testValue";
         String result = client.putRecord(
@@ -98,25 +105,34 @@ public class Shp2WkbTest {
         System.out.println(result);
     }
 
+    /**
+     * 采用多线程测试数据的读取
+     */
     @Test
-    public void testQueryFromChain() throws ParseException {
-        String key = "131102taochengqu";
-        String value = client.getRecord(key, "131100",  "bcgiscc");
-        System.out.println(value);
+    public void testReadData(){
+
     }
 
+
+
+
+
+    //   D   6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4     attributes
+    /**
+     * 测试删除指定键值
+     */
     @Test
-    public void testQueryGeometryFromChain1() throws ParseException {
-        BlockChainClient client2 = new BlockChainClient(networkFile);
-        for(int i = 0; i < 10000; i++) {
-            String key = "Line4";
-            byte[][] result = client2.getRecordBytes(
+    public void testDeleteByKey(){
+        String key = "test";
+        for(int i = 0; i < 50; i++) {
+            String strIndex = String.format("%05d", i);
+            String attributes = "attributes";
+            String recordKey = key  + strIndex;
+            String result = client.deleteRecord(
                     key,
                     "bcgiscc",
-                    "GetRecordByKey"
+                    "DeleteRecordByKey"
             );
-            Geometry geometry = Utils.getGeometryFromBytes(result[0]);
-            System.out.println(geometry.getNumGeometries()+"======" + i);
         }
     }
 
@@ -127,11 +143,13 @@ public class Shp2WkbTest {
     }
 
     @Test
-    public void testThread() throws URISyntaxException {
-        for (int i=0; i< 1000 ; i++) {
-            Utils.ThreadDemo threadDemo = new Utils.ThreadDemo("测试Thread" + i);
-//            threadDemo.start();
-            threadDemo.run();
-        }
+    public void testGeoJSON(){
+
+        String shpURL = "E:\\SuperMapData\\hu.json";
+        File geoJsonFile = new File(shpURL);
+        String s = Utils.readJsonFile(String.valueOf(geoJsonFile));
+        System.out.println(s);
+//        JSONArray jsonArray = (JSONArray)JSON.parse(s);
     }
+
 }

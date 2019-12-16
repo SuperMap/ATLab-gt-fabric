@@ -7,7 +7,7 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKBWriter;
 
-import java.io.File;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -90,11 +90,9 @@ public class Utils {
         public void run() {
             Geometry geometry = null;
             int count = 1;
-
             synchronized (this) {
                 BlockChainClient client = new BlockChainClient(networkFile);
                 while (count > 0) {
-
                     String key = "Line4";
                     byte[][] result = client.getRecordBytes(
                             key,
@@ -106,11 +104,11 @@ public class Utils {
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-                    try {
-                        Thread.sleep(80);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        Thread.sleep(80);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
                     System.out.println("===============" + count );
                     count--;
                 }
@@ -119,7 +117,33 @@ public class Utils {
         }
     }
 
+    public static String readJsonFile(String fileName) {
+        String jsonStr = "";
+        try {
+            File jsonFile = new File(fileName);
+            FileReader fileReader = new FileReader(jsonFile);
+
+            Reader reader = new InputStreamReader(new FileInputStream(jsonFile),"utf-8");
+            int ch = 0;
+            StringBuffer sb = new StringBuffer();
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            fileReader.close();
+            reader.close();
+            jsonStr = sb.toString();
+            return jsonStr;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 }
+
+
+
 
 
 
