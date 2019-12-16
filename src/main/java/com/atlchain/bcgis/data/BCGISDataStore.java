@@ -43,7 +43,7 @@ public class BCGISDataStore extends ContentDataStore {
         client = new BlockChainClient(networkConfigFile);
     }
 
-    public String putDataOnBlockchain(File shpFile) throws IOException, InterruptedException {
+    public String putDataOnBlockchain(File shpFile) throws IOException {
         String fileName = shpFile.getName();
 
         String ext = Files.getFileExtension(fileName);
