@@ -1,6 +1,0 @@
-syntax = "proto2";
-
-message Person {
-    required bytes geometry = 1;
-    required string attributes = 2;
-}
