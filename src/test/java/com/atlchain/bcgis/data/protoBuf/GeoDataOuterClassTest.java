@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 
 public class GeoDataOuterClassTest {
 
-    private String shpURL = this.getClass().getResource("/Province/Province_R.shp").getFile(); //  /Province/Province_R.shp  /D/D.shp
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile(); //  /Province/Province_R.shp  /D/D.shp
     private File shpFile = new File(shpURL);
     Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
 

@@ -1,5 +1,8 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.atlchain.bcgis.data.protoBuf.GeoDataOuterClass;
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentState;
@@ -11,6 +14,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
@@ -20,6 +24,8 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     protected ContentState state;
 
     protected Geometry geometry;
+
+    protected JSONArray jsonArray;
 
     protected SimpleFeatureBuilder builder;
 
@@ -31,6 +37,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         this.state = contentState;
         BCGISDataStore bcgisDataStore = (BCGISDataStore)contentState.getEntry().getDataStore();
         geometry = bcgisDataStore.getRecord();
+        jsonArray = bcgisDataStore.getProperty();
         builder = new SimpleFeatureBuilder(state.getFeatureType());
         geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
     }
@@ -50,18 +57,25 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             next = null;
         }else{
             Geometry geom = geometry.getGeometryN(index);
-            feature = getFeature(geom);
+            JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(index).toString());
+            feature = getFeature(geom, jsonObject);
         }
         return feature;
     }
 
-    private SimpleFeature getFeature(Geometry geometry) {
+    private SimpleFeature getFeature(Geometry geometry, JSONObject jsonObject) {
         if(geometry == null){
             return null;
         }
         index ++;
 //        builder.set("geom", geometry);
         builder.set("geom",geometryFactory.createGeometry(geometry));
+
+        Set<String> keys =  jsonObject.keySet();
+        for(String key : keys){
+            String value = jsonObject.get(key).toString();
+            builder.set(key, value);
+        }
         return builder.buildFeature(state.getEntry().getTypeName() + "." + index);
     }
 
@@ -72,7 +86,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         } else if (geometry == null){
             return  false;
         } else {
-            next = getFeature(geometry);
+            next = getFeature(geometry, JSONObject.parseObject(jsonArray.get(index).toString()));
             return false;
         }
     }

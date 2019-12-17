@@ -1,5 +1,6 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.*;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -30,7 +31,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/chenduqu/chengduqu.shp").getFile();  //  /Province/Province_R.shp  /D/D.shp  /chenduqu/chenduqu.shp
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();  //  /Province/Province_R.shp  /D/D.shp  /chenduqu/chenduqu.shp
     private File shpFile = new File(shpURL);
     private String chaincodeName = "bcgiscc";
     private String functionName = "GetRecordByKey";
@@ -265,12 +266,29 @@ public class BCGISDataStoreTest {
     }
 
     /**
+     * 2019.12.17
+     * 通过 bcgis 插件将 shp 文件 以 proto 格式存入区块链网络
+     */
+    @Test
+    public void testPutDataOnBlockchainByProto() throws IOException, InterruptedException {
+        String result = bcgisDataStore.putDataOnBlockchainByProto(shpFile);
+        System.out.println(result);
+//        Assert.assertTrue(result.contains("successfully"));
+    }
+
+    /**
      *  根据 hash 获取数据
      */
     @Test
     public void testGetDataFromChain() {
         Geometry geometry = bcgisDataStore.getRecord();
         System.out.println(geometry.getNumGeometries());
+
+        JSONArray jsonArray = bcgisDataStore.getProperty();
+        for(Object o : jsonArray){
+            JSONObject json = JSONObject.parseObject(o.toString());
+            System.out.println(json);
+        }
     }
 
     /**

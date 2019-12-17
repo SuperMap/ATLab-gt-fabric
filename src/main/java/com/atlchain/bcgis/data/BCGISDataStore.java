@@ -3,6 +3,7 @@ package com.atlchain.bcgis.data;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import com.google.common.io.Files;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentDataStore;
@@ -118,7 +119,68 @@ public class BCGISDataStore extends ContentDataStore {
         return result;
     }
 
-    public Geometry getRecord(){
+    public String putDataOnBlockchainByProto(File shpFile) throws IOException {
+        String fileName = shpFile.getName();
+
+        String ext = Files.getFileExtension(fileName);
+        if(!"shp".equals(ext)) {
+            throw new IOException("Only accept shp file");
+        }
+
+        String result = "";
+        Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
+        ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
+        String geometryStr = Utils.getGeometryStr(geometryArrayList);
+        String hash = Utils.getSHA256(geometryStr);
+        String key = hash;
+        System.out.println(key);
+        String mapname = fileName.substring(0, fileName.lastIndexOf("."));
+
+        JSONObject argsJson = new JSONObject();
+        argsJson.put("mapname", mapname);
+        argsJson.put("count", geometryArrayList.size());
+        argsJson.put("hash", key);
+        argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
+        argsJson.put("PID", "");
+        String args = argsJson.toJSONString();
+
+        result = client.putRecord(
+                key,
+                args,
+                chaincodeName,
+                "PutRecord"
+        );
+        if (!result.contains("successfully")) {
+            return "Put data on chain FAILED! MESSAGE:" + result;
+        }
+
+        // 存放单条记录
+        JSONArray jsonProps = shp2WKB.getShpFileAttributes();
+        for (int i = 0; i < geometryArrayList.size(); i ++) {
+            JSONObject jsonProp = JSONObject.parseObject(jsonProps.get(i).toString());
+            Geometry geometry = geometryArrayList.get(i);
+            byte[] geoBytes =  protoConvert.dataToProto(geometry, jsonProp);
+            String strIdex = String.format("%05d", i);
+            String recordKey = key + "-" + strIdex;
+            result = client.putRecord(
+                    recordKey,
+                    geoBytes,
+                    chaincodeName,
+                    "PutRecordBytes"
+            );
+            if (!result.contains("successfully")) {
+                return "Put data on chain FAILED! MESSAGE:" + result;
+            }
+        }
+        return result;
+    }
+
+
+    /**
+     * 之前的获取数据的方式
+     * @return
+     */
+    public Geometry getRecordOld(){
 
         String result = client.getRecord(
                 this.recordKey,
@@ -130,19 +192,19 @@ public class BCGISDataStore extends ContentDataStore {
         int count = (int)jsonObject.get("count");
 
         Geometry geometry = null;
-//        // TODO 范围查询
-//        byte[][] results = client.getRecordByRange(
-//                this.recordKey,
-//                this.chaincodeName
-//        );
-         // TODO 分页查询
-        int pageSize = 1;
-        byte[][] results = client.getStateByRangeWithPagination(
+        // TODO 范围查询
+        byte[][] results = client.getRecordByRange(
                 this.recordKey,
-                this.chaincodeName,
-                pageSize,
-                count
+                this.chaincodeName
         );
+        // TODO 分页查询
+//        int pageSize = 1;
+//        byte[][] results = client.getStateByRangeWithPagination(
+//                this.recordKey,
+//                this.chaincodeName,
+//                pageSize,
+//                count
+//        );
 
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
         for (byte[] resultByte : results) {
@@ -185,6 +247,95 @@ public class BCGISDataStore extends ContentDataStore {
 //        GeometryCollection geometryCollection = (GeometryCollection) getRecordByAttributes(stringList);
 //        System.out.println("===" + geometryCollection);
         return geometryCollection;
+    }
+
+    public Geometry getRecord(){
+
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        int count = (int)jsonObject.get("count");
+        Geometry geometry = null;
+        // TODO 范围查询
+        byte[][] results = client.getRecordByRange(
+                this.recordKey,
+                this.chaincodeName
+        );
+        // TODO 分页查询
+//        int pageSize = 1;
+//        byte[][] results = client.getStateByRangeWithPagination(
+//                this.recordKey,
+//                this.chaincodeName,
+//                pageSize,
+//                count
+//        );
+        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        for (byte[] resultByte : results) {
+            String resultStr = new String(resultByte);
+            JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
+//            if (count != jsonArray.size()) {
+//                return null;
+//            }
+            for (Object obj : jsonArray){
+                JSONObject jsonObj = (JSONObject) obj;
+                String recordBase64 = (String)jsonObj.get("Record");
+                byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                geometry = protoConvert.getGeometryFromProto(bytes);
+                geometryArrayList.add(geometry);
+            }
+        }
+        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+        GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
+        if (geometryArrayList == null) {
+            try {
+                throw new IOException("Blockchain record is not available");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return geometryCollection;
+    }
+
+    /**
+     * 解析得到属性
+     * @return
+     */
+    public JSONArray getProperty(){
+
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        byte[][] results = client.getRecordByRange(
+                this.recordKey,
+                this.chaincodeName
+        );
+        JSONObject jsonProp;
+        JSONArray jsonArrayProp = new JSONArray();
+        for (byte[] resultByte : results) {
+            String resultStr = new String(resultByte);
+            JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
+            for (Object obj : jsonArray){
+                JSONObject jsonObj = (JSONObject) obj;
+                String recordBase64 = (String)jsonObj.get("Record");
+                byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                jsonProp = protoConvert.getPropFromProto(bytes);
+                jsonArrayProp.add(jsonProp);
+            }
+        }
+
+        if (jsonArrayProp == null) {
+            try {
+                throw new IOException("Blockchain record prop defalut");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return jsonArrayProp;
     }
 
     // new add
