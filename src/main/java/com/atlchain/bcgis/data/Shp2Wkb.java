@@ -1,5 +1,7 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -8,12 +10,16 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Shp2Wkb {
@@ -98,22 +104,34 @@ public class Shp2Wkb {
      * 获取 shpfile 文件属性
      * @return
      */
-    public List<String> getShpFileAttributes()  {
-        List<String> list = new ArrayList<>();
+    public JSONArray getShpFileAttributes()  {
+        JSONArray jsonArray = new JSONArray();
         try {
             FileDataStore store = FileDataStoreFinder.getDataStore(shpFile);
             SimpleFeatureSource featureSource = store.getFeatureSource();
+            // 提取出属性的 ID 值
+            List<String> attributeID = new LinkedList<>();
+            List<AttributeDescriptor> attrList= featureSource.getSchema().getAttributeDescriptors();
+            for(AttributeDescriptor attr : attrList){
+                String ID = attr.getName().getLocalPart();
+                if( !ID.equals("the_geom")){
+                    attributeID.add(ID);
+                }
+            }
             SimpleFeatureCollection featureCollection = featureSource.getFeatures();
             SimpleFeatureIterator featureIterator = featureCollection.features();
             while (featureIterator.hasNext()) {
                 SimpleFeature feature = featureIterator.next();
-                String s = feature.getAttribute("name").toString();
-//                String s = "D";
-                list.add(s);
+                JSONObject jsonObject = new JSONObject();
+                for(String str : attributeID){
+                    String attribute = feature.getAttribute(str).toString();
+                    jsonObject.put(str, attribute);
+                }
+                jsonArray.add(jsonObject);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return list;
+        return jsonArray;
     }
 }

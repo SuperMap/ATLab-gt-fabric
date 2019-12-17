@@ -79,11 +79,11 @@ public class BCGISDataStore extends ContentDataStore {
         }
 
         // 存放属性值
-        List<String> listAttributes = shp2WKB.getShpFileAttributes();
-        for(int i = 0; i < listAttributes.size(); i++ ){
+        JSONArray jsonArrayAttributes = shp2WKB.getShpFileAttributes();
+        for(int i = 0; i < jsonArrayAttributes.size(); i++ ){
             JSONObject JsonAttributes = new JSONObject();
             String attributesKey = "attributes" + key +  "-" + String.format("%05d", i);
-            JsonAttributes.put("Name", listAttributes.get(i));
+            JsonAttributes.put("Name", jsonArrayAttributes.get(i));
             JsonAttributes.put("mapName", hash);
             String Attributes = JsonAttributes.toJSONString();
             result = client.putRecord(
