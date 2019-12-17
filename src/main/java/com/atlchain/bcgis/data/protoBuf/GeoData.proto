@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+//message Person {
+//    required bytes geometry = 1;
+//    required string attributes = 2;
+//}
+// protoc --java_out=E:\DemoRecording\A_SuperMap\ATLab-gt-fabric\src\main\java\com\atlchain\bcgis\data GeoData.proto
+message Prop {
+     string key = 1;
+     string value = 2;
+}
+
+message GeoData {
+    bytes geometry = 1;
+    repeated Prop prop = 2;
+}
