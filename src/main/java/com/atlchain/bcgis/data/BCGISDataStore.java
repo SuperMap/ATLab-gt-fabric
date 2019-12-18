@@ -29,6 +29,7 @@ public class BCGISDataStore extends ContentDataStore {
     private String chaincodeName;
     private String functionName;
     private String recordKey;
+//    private String key;
     private BlockChainClient client;
 
     public BCGISDataStore(
@@ -338,7 +339,7 @@ public class BCGISDataStore extends ContentDataStore {
         return jsonArrayProp;
     }
 
-    // new add
+    // 之前用来富查询用的，估计后面用不到了
     public Geometry getRecordByAttributes(List<String> stringList){
         String attributesHash = client.getRecord(
                 stringList,
@@ -376,6 +377,10 @@ public class BCGISDataStore extends ContentDataStore {
         return geometryCollection;
     }
 
+    /**
+     * 该名字会显示在编辑图层时的命名
+     * @return
+     */
     @Override
     protected List<Name> createTypeNames() {
 

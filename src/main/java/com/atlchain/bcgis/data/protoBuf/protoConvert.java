@@ -17,12 +17,12 @@ import java.util.Set;
  */
 public class protoConvert {
 
-//    /**
-//     * 序列化数据
-//     * @param geometry      空间几何数据
-//     * @param jsonObject    属性信息
-//     * @return
-//     */
+    /**
+     * 序列化数据
+     * @param geometry      空间几何数据
+     * @param jsonObject    属性信息
+     * @return
+     */
     public static byte[] dataToProto(Geometry geometry, JSONObject jsonObject){
 
         byte[] bytes = Utils.getBytesFromGeometry(geometry);

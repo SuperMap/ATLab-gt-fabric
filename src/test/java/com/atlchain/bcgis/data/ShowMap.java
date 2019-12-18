@@ -19,7 +19,7 @@ public class ShowMap {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-        String DKey = "hashD";
+        String DKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 new File(BCGISDataStoreTest.class.getResource("/network-config-test.yaml").getPath()),
                 "bcgiscc",

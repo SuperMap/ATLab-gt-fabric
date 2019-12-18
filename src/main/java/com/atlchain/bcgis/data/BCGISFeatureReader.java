@@ -3,6 +3,7 @@ package com.atlchain.bcgis.data;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.atlchain.bcgis.data.protoBuf.GeoDataOuterClass;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentState;
@@ -57,6 +58,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             next = null;
         }else{
             Geometry geom = geometry.getGeometryN(index);
+            int a = index;
             JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(index).toString());
             feature = getFeature(geom, jsonObject);
         }
@@ -69,7 +71,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         }
         index ++;
 //        builder.set("geom", geometry);
-        builder.set("geom",geometryFactory.createGeometry(geometry));
+        builder.set("geom", geometryFactory.createGeometry(geometry));
 
         Set<String> keys =  jsonObject.keySet();
         for(String key : keys){
@@ -86,7 +88,8 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         } else if (geometry == null){
             return  false;
         } else {
-            next = getFeature(geometry, JSONObject.parseObject(jsonArray.get(index).toString()));
+            JSONObject jsonObject = new JSONObject();
+            next = getFeature(geometry, jsonObject);
             return false;
         }
     }

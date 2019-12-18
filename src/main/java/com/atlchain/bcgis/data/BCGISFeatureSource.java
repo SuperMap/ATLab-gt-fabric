@@ -1,5 +1,7 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
@@ -17,6 +19,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class BCGISFeatureSource extends ContentFeatureSource {
@@ -66,6 +69,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         builder.setCRS(DefaultGeographicCRS.WGS84);
         BCGISDataStore bcgisDataStore = getDataStore();
         Geometry geometry = bcgisDataStore.getRecord();
+        JSONArray jsonArray = bcgisDataStore.getProperty();
 
         if (geometry.getNumGeometries() < 1) {
             builder.add("geom", LineString.class);
@@ -85,7 +89,12 @@ public class BCGISFeatureSource extends ContentFeatureSource {
                 builder.add("geom", Polygon.class);
             }
         }
-
+        // TODO  在 reader/getFeature 中增加属性时，这里需要先将有哪些属性告诉对方，然后再添加
+        JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(0).toString());
+        Set<String> keys =  jsonObject.keySet();
+        for(String key : keys){
+            builder.add(key, String.class);
+        }
         final SimpleFeatureType SCHEMA = builder.buildFeatureType();
         return SCHEMA;
     }

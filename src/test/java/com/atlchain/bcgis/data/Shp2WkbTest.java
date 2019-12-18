@@ -132,13 +132,13 @@ public class Shp2WkbTest {
      */
     @Test
     public void testDeleteByKey(){
-        String key = "test";
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
         for(int i = 0; i < 50; i++) {
-            String strIndex = String.format("%05d", i);
+            String strIndex = String.format("%06d", i);
             String attributes = "attributes";
             String recordKey = key  + strIndex;
             String result = client.deleteRecord(
-                    key,
+                    recordKey,
                     "bcgiscc",
                     "DeleteRecordByKey"
             );
