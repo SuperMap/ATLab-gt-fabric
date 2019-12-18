@@ -33,21 +33,29 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
     public String getDisplayName() { return "BCGIS"; }
 
     @Override
-    public String getDescription() { return "WKB binary file"; }
+    public String getDescription() { return "Fabric database"; }
 
     @Override
     public boolean isAvailable() { return true; }
 
-    public static final Param NETWORK_CONFIG_PARAM  = new Param("config", File.class, "network config file");
-    public static final Param CC_NAME_PARAM         = new Param("chaincodeName", String.class, "chaincode name");
-    public static final Param FUNCTION_NAME_PARAM   = new Param("functionName", String.class, "function name");
-    public static final Param KEY_PARAM             = new Param("recordKey", String.class, "record key");
-    public static final Param NAMESPACE             = new Param("namespace", String.class, "Namespace URI", false);
+    public static final Param NAMESPACE
+            = new Param("namespace", String.class, "Namespace URI", false);
+    public static final Param NETWORK_CONFIG_PARAM
+            = new Param("select Fabric config file", File.class, "network config file");
+    public static final Param SHP_FILE_PARAM
+            = new Param("select shpfile", File.class, "Shapefile location ");
+    public static final Param KEY_PARAM
+            = new Param("recordKey", String.class, "record key", true, "null");
+    public static final Param CC_NAME_PARAM
+            = new Param("chaincodeName", String.class, "chaincode name ", true, "bcgiscc");
+    public static final Param FUNCTION_NAME_PARAM
+            = new Param("functionName", String.class, "function name", true, "GetRecordByKey");
     @Override
     public Param[] getParametersInfo() {
         return new Param[] {
                 NAMESPACE,
                 NETWORK_CONFIG_PARAM ,
+                SHP_FILE_PARAM,
                 CC_NAME_PARAM,
                 FUNCTION_NAME_PARAM,
                 KEY_PARAM
@@ -62,6 +70,7 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
     @Override
     public DataStore createDataStore(Map<String, Serializable> params) throws IOException {
 
+        // TODO 配置 NETWORK_CONFIG_PARAM
         File file = (File)NETWORK_CONFIG_PARAM.lookUp(params);
         File networkConfigFile_InputValue = null;
 
@@ -86,13 +95,47 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
             networkConfigFile = new File(new URL(string_temp).getPath());
         }
 
+        // TODO 配置 SHP_FILE_PARAM
+        File shpFile = (File)SHP_FILE_PARAM.lookUp(params);
+        File shpFile_InputValue = null;
+
+        if (shpFile.getPath().startsWith("file:")) {
+            String path = shpFile.getPath();
+            path = path.replace("\\",File.separator);
+            shpFile_InputValue = new File(new URL(path).getPath());
+        } else {
+            shpFile_InputValue = shpFile;
+        }
+
+        String shp_string_temp = null;
+        File shp_file_temp = null;
+        File shpConfigFile = null;
+
+        if(shpFile_InputValue.exists()){
+            shpConfigFile = shpFile_InputValue;
+        }else{
+            shp_string_temp = "data_dir" + File.separator + shpFile_InputValue.getPath();
+            shp_file_temp = new File(shp_string_temp);
+            shp_string_temp = shp_file_temp.toURL().toString().replace("\\",File.separator);
+            shpConfigFile = new File(new URL(shp_string_temp).getPath());
+        }
+
+
         String chaincodeName = (String)CC_NAME_PARAM.lookUp(params);
         String functionName = (String)FUNCTION_NAME_PARAM.lookUp(params);
         String key = (String)KEY_PARAM.lookUp(params);
         String uri = (String) NAMESPACE.lookUp(params);
 
+        // networkConfigFile--------------->配置文件需要
+        // chaincodeName------------------->这是用户自定义的名称，可保留，并且和 writer 最后写入数据到区块链时的链码名一样
+        // functionName--------------------> 因为为读取数据，统一规定为 GteRecordByKey 即可
+        // key -----------------------------> 不需要，将写入到区块链时返回的 key 放到这里就行
+        // TODO 现在只保留 networkConfigFile（必须）
+
+        logger.info("key----------------------->" +key);
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 networkConfigFile,
+                shpConfigFile,
                 chaincodeName,
                 functionName,
                 key
@@ -108,13 +151,14 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
     @Override
     public DataStore createNewDataStore(Map<String, Serializable> params) throws IOException {
         File networkConfigFile = new File(((File)NETWORK_CONFIG_PARAM.lookUp(params)).getPath());
-
+        File shpConfigFile = new File(((File)SHP_FILE_PARAM.lookUp(params)).getPath());
         String chaincodeName = (String)CC_NAME_PARAM.lookUp(params);
         String functionName = (String)FUNCTION_NAME_PARAM.lookUp(params);
         String key = (String)KEY_PARAM.lookUp(params);
 
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 networkConfigFile,
+                shpConfigFile,
                 chaincodeName,
                 functionName,
                 key

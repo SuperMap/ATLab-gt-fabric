@@ -11,6 +11,7 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -34,6 +35,7 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
     public BCGISFeatureWriter(ContentState state, Query query) {
         this.state = state;
         this.delegate = new BCGISFeatureReader(state, query);
+//        File file = (BCGISDataStore)state.getEntry().getDataStore()
     }
 
     @Override
@@ -116,18 +118,33 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
         }
 
         logger.info("====================>write to the BlockChain");
-//        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
-//        GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
-//        File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
-//        BlockChainClient client = new BlockChainClient(networkFile);
-//        WKBWriter wkbWriter = new WKBWriter();
-//        byte[] bytes = wkbWriter.write(geometryCollection);
-//        String result = client.putRecord(
-//                "LineWrite2",
-//                bytes,
-//                "bincc",
-//                "PutByteArray"
-//        );
+
+        // TODO 假如是 shp 文件，将其写入到区块链
+//        BCGISDataStore bcgisDataStore = (BCGISDataStore)state.getEntry().getDataStore();
+//        bcgisDataStore.putDataOnBlockchainByProto();
+
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

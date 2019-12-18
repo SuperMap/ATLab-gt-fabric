@@ -42,6 +42,7 @@ public class BCGISDataStoreTest {
     private File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
     private BCGISDataStore bcgisDataStore = new BCGISDataStore(
             networkFile,
+            shpFile,
             chaincodeName,
             functionName,
             recordKey
@@ -235,6 +236,7 @@ public class BCGISDataStoreTest {
         //  成都区         5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 new File("\\E:\\DemoRecording\\A_SuperMap\\ATLab-gt-fabric\\src\\test\\resources\\network-config-test.yaml"),
+                new File("E:\\SuperMapData\\D\\D.shp"),
                 "bcgiscc",
                 "GetRecordByKey",
                 LineKey
@@ -271,7 +273,7 @@ public class BCGISDataStoreTest {
      */
     @Test
     public void testPutDataOnBlockchainByProto() throws IOException, InterruptedException {
-        String result = bcgisDataStore.putDataOnBlockchainByProto(shpFile);
+        String result = bcgisDataStore.putDataOnBlockchainByProto();
         System.out.println(result);
 //        Assert.assertTrue(result.contains("successfully"));
     }

@@ -29,11 +29,13 @@ public class BCGISDataStore extends ContentDataStore {
     private String chaincodeName;
     private String functionName;
     private String recordKey;
-//    private String key;
     private BlockChainClient client;
+    private File shpFile;
+    private int count;
 
     public BCGISDataStore(
             File networkConfigFile,
+            File shpFile,
             String chaincodeName,
             String functionName,
             String recordKey
@@ -41,10 +43,25 @@ public class BCGISDataStore extends ContentDataStore {
     {
         this.chaincodeName = chaincodeName;
         this.functionName = functionName;
-        this.recordKey = recordKey;
         client = new BlockChainClient(networkConfigFile);
+        this.shpFile = shpFile;
+        if( !recordKey.equals("null") ){
+            this.recordKey = recordKey; // 获取外界的  key 进行发布  先判断，假如有的话那就不再计算了
+        } else {
+            try {
+                this.recordKey = putDataOnBlockchainByProto();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
+    /**
+     * TODO 之前的存入区块链的方法，后面需要删除
+     * @param shpFile
+     * @return
+     * @throws IOException
+     */
     public String putDataOnBlockchain(File shpFile) throws IOException {
         String fileName = shpFile.getName();
 
@@ -120,9 +137,13 @@ public class BCGISDataStore extends ContentDataStore {
         return result;
     }
 
-    public String putDataOnBlockchainByProto(File shpFile) throws IOException {
+    /**
+     * 以 proto 的格式将数据存入到区块链
+     * @return
+     * @throws IOException
+     */
+    public String putDataOnBlockchainByProto() throws IOException {
         String fileName = shpFile.getName();
-
         String ext = Files.getFileExtension(fileName);
         if(!"shp".equals(ext)) {
             throw new IOException("Only accept shp file");
@@ -173,9 +194,8 @@ public class BCGISDataStore extends ContentDataStore {
                 return "Put data on chain FAILED! MESSAGE:" + result;
             }
         }
-        return result;
+        return key;
     }
-
 
     /**
      * 之前的获取数据的方式
@@ -250,36 +270,18 @@ public class BCGISDataStore extends ContentDataStore {
         return geometryCollection;
     }
 
+    /**
+     * 获取空间几何数据
+     * @return
+     */
     public Geometry getRecord(){
 
-        String result = client.getRecord(
-                this.recordKey,
-                this.chaincodeName,
-                this.functionName
-        );
-        JSONObject jsonObject = (JSONObject)JSON.parse(result);
-        int count = (int)jsonObject.get("count");
-        Geometry geometry = null;
-        // TODO 范围查询
-        byte[][] results = client.getRecordByRange(
-                this.recordKey,
-                this.chaincodeName
-        );
-        // TODO 分页查询
-//        int pageSize = 1;
-//        byte[][] results = client.getStateByRangeWithPagination(
-//                this.recordKey,
-//                this.chaincodeName,
-//                pageSize,
-//                count
-//        );
+        Geometry geometry;
+        byte[][] results = getDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
         for (byte[] resultByte : results) {
             String resultStr = new String(resultByte);
             JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
-//            if (count != jsonArray.size()) {
-//                return null;
-//            }
             for (Object obj : jsonArray){
                 JSONObject jsonObj = (JSONObject) obj;
                 String recordBase64 = (String)jsonObj.get("Record");
@@ -297,6 +299,9 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
+        if( count != geometryCollection.getNumGeometries()){
+            return null;
+        }
         return geometryCollection;
     }
 
@@ -306,15 +311,7 @@ public class BCGISDataStore extends ContentDataStore {
      */
     public JSONArray getProperty(){
 
-        String result = client.getRecord(
-                this.recordKey,
-                this.chaincodeName,
-                this.functionName
-        );
-        byte[][] results = client.getRecordByRange(
-                this.recordKey,
-                this.chaincodeName
-        );
+        byte[][] results = getDataFromChaincode();
         JSONObject jsonProp;
         JSONArray jsonArrayProp = new JSONArray();
         for (byte[] resultByte : results) {
@@ -336,7 +333,35 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
+        if( count != jsonArrayProp.size() ){
+            return null;
+        }
         return jsonArrayProp;
+    }
+
+    public byte[][]  getDataFromChaincode(){
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        // TODO 当需要验证有存储的个数和得到的个数是否匹配的时候需要用到下面的 count ，采用它对比得到的 geometry 个数 和 属性的个数
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        count = (int)jsonObject.get("count");
+        byte[][] results = client.getRecordByRange(
+                this.recordKey,
+                this.chaincodeName
+        );
+
+        // TODO 分页查询
+//        int pageSize = 1;
+//        byte[][] results = client.getStateByRangeWithPagination(
+//                this.recordKey,
+//                this.chaincodeName,
+//                pageSize,
+//                count
+//        );
+        return results;
     }
 
     // 之前用来富查询用的，估计后面用不到了
@@ -384,8 +409,8 @@ public class BCGISDataStore extends ContentDataStore {
     @Override
     protected List<Name> createTypeNames() {
 
-        String tempname = "tempfeaturesType" ;
-        Name name = new NameImpl(namespaceURI, tempname);
+//        String tempname = "tempfeaturesType" ;
+        Name name = new NameImpl(namespaceURI, this.recordKey);
         return Collections.singletonList(name);
     }
 
