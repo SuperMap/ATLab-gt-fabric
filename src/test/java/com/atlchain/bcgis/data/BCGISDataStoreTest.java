@@ -311,4 +311,31 @@ public class BCGISDataStoreTest {
         System.out.println(geometry);
         System.out.println(geometry.getNumGeometries());
     }
+
+
+    /**
+     * 基于 proto 格式实现属性查询------------------>根据 key 对应的多个 value进行查询
+     *    ------>前提是前端在展示的时候，让用户进行属性查询时先确定查询的属性是什么？然后在填写查询的东西------->设计一个类似于搜索的东西
+     *
+     *    前端展示需要一个下拉列表框，展示现在具体有哪些属性，然后用户选择查询那个属性------>输入值，可输入多个
+     *                                                  可选择多个属性进行综合查询，然后输入属性查询
+     *    到时前端展示的时候只显示几个固定的查询框即可，后期在做上面的想法
+     */
+    @Test
+    public void testQueryAttributes(){
+
+        JSONObject json = new JSONObject();
+        String key1 = "AdminCode";
+        String key2 = "Kind";
+        JSONArray value1 = new JSONArray();
+        JSONArray value2 = new JSONArray();
+        value1.add("130824");  // 唯一值
+        value1.add("110228");
+        value1.add("110116");
+        value2.add("0137");    // 全部都一样
+        json.put(key1, value1);
+        json.put(key2, value2);
+        Geometry geometry = bcgisDataStore.queryAttributesByProto(json);
+        System.out.println(geometry.getNumGeometries());
+    }
 }

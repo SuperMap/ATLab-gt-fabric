@@ -86,6 +86,7 @@ public class Shp2WkbTest {
 //        System.out.println(geometry);
 //        System.out.println(geometry.getNumGeometries());
     }
+
     //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
     //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
     /**
@@ -113,18 +114,6 @@ public class Shp2WkbTest {
         );
         System.out.println(result);
     }
-
-    /**
-     * 采用多线程测试数据的读取
-     */
-    @Test
-    public void testReadData(){
-
-    }
-
-
-
-
 
     //   D   6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4     attributes
     /**

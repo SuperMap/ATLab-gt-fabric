@@ -345,6 +345,9 @@ public class BCGISDataStore extends ContentDataStore {
                 this.chaincodeName,
                 this.functionName
         );
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
         // TODO 当需要验证有存储的个数和得到的个数是否匹配的时候需要用到下面的 count ，采用它对比得到的 geometry 个数 和 属性的个数
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
         count = (int)jsonObject.get("count");
@@ -364,7 +367,12 @@ public class BCGISDataStore extends ContentDataStore {
         return results;
     }
 
-    // 之前用来富查询用的，估计后面用不到了
+    /**
+     * 之前采用富查询的方式做属性查询（保留，后期可能会用） -----------------> 因为是富查询，所以不需要 key 即可以查，而现在是需要 key 才可以查
+     * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
+     * @param stringList
+     * @return
+     */
     public Geometry getRecordByAttributes(List<String> stringList){
         String attributesHash = client.getRecord(
                 stringList,
@@ -396,6 +404,43 @@ public class BCGISDataStore extends ContentDataStore {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
+        }
+        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+        GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
+        return geometryCollection;
+    }
+
+    /**
+     * 通过解析 jsonArrayProp 查询对应的属性，然后得到序号，最后得到相应属性的 geometry
+     * TODO 这只是一个方法，后期需要的话再把 key 加进来就可以了
+     * @param jsonObject 包含查询的多个 key-->value
+     * @return
+     */
+    public Geometry queryAttributesByProto(JSONObject jsonObject) {
+
+        JSONArray jsonArrayProp = getProperty();
+        Geometry geometry = getRecord();
+
+        Geometry geo;
+        JSONObject json;
+        Set<String> keys = jsonObject.keySet();
+        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        for(int i = 0; i < jsonArrayProp.size(); i++){
+            Boolean judgment = true;
+            for(String key : keys){
+                String value = jsonObject.getString(key);
+                json = JSONObject.parseObject(jsonArrayProp.get(i).toString());
+                String queryValue = json.getString(key);
+                if( !value.contains(queryValue)){
+                    judgment = false;
+                    break;//结束本次循环
+                }
+            }
+            if( !judgment){
+                continue; // 后面语句不在执行
+            }
+            geo = geometry.getGeometryN(i);
+            geometryArrayList.add(geo);
         }
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
