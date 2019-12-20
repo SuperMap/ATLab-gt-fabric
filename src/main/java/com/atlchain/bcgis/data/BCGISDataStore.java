@@ -32,6 +32,7 @@ public class BCGISDataStore extends ContentDataStore {
     private BlockChainClient client;
     private File shpFile;
     private int count;
+    private byte[][] results ;
 
     public BCGISDataStore(
             File networkConfigFile,
@@ -47,6 +48,7 @@ public class BCGISDataStore extends ContentDataStore {
         this.shpFile = shpFile;
         if( !recordKey.equals("null") ){
             this.recordKey = recordKey; // 获取外界的  key 进行发布  先判断，假如有的话那就不再计算了
+            this.results = getDataFromChaincode();
         } else {
             try {
                 this.recordKey = putDataOnBlockchainByProto();
@@ -76,7 +78,7 @@ public class BCGISDataStore extends ContentDataStore {
         String geometryStr = Utils.getGeometryStr(geometryArrayList);
         String hash = Utils.getSHA256(geometryStr);
         String key = hash;
-        System.out.println(key);
+//        System.out.println(key);
         String mapname = fileName.substring(0, fileName.lastIndexOf("."));
 
         JSONObject argsJson = new JSONObject();
@@ -164,24 +166,29 @@ public class BCGISDataStore extends ContentDataStore {
         argsJson.put("hash", key);
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
-        String args = argsJson.toJSONString();
 
-        result = client.putRecord(
-                key,
-                args,
-                chaincodeName,
-                "PutRecord"
-        );
-        if (!result.contains("successfully")) {
-            return "Put data on chain FAILED! MESSAGE:" + result;
-        }
+        // TODO 这里设计一个范围查询的列表以 JSONArray 的形式存储，代表着查询的范围，根据每一范围的数据量最多为 900 和每一范围最大为 1024 kb
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.add(0);
 
+        int tmpCount = 0;               // 用来计数最大为 900
+        int DataSize = 0;         // 用来表示打次范围内最多的数据
         // 存放单条记录
         JSONArray jsonProps = shp2WKB.getShpFileAttributes();
         for (int i = 0; i < geometryArrayList.size(); i ++) {
             JSONObject jsonProp = JSONObject.parseObject(jsonProps.get(i).toString());
             Geometry geometry = geometryArrayList.get(i);
             byte[] geoBytes =  protoConvert.dataToProto(geometry, jsonProp);
+
+            // new add
+            DataSize = DataSize + geoBytes.length;
+            tmpCount = tmpCount + 1;
+            if(DataSize > 900 * 900 || tmpCount > 900){
+                jsonArray.add(i);
+                DataSize = 0;
+                tmpCount = 0;
+            }
+
             String strIdex = String.format("%05d", i);
             String recordKey = key + "-" + strIdex;
             result = client.putRecord(
@@ -194,7 +201,44 @@ public class BCGISDataStore extends ContentDataStore {
                 return "Put data on chain FAILED! MESSAGE:" + result;
             }
         }
+
+        jsonArray.add(geometryArrayList.size()); // 范围完成 从 0 开始 到最后结束
+        argsJson.put("readRange", jsonArray);
+        String args = argsJson.toJSONString();
+        // 整体信息存储
+        result = client.putRecord(
+                key,
+                args,
+                chaincodeName,
+                "PutRecord"
+        );
+        if (!result.contains("successfully")) {
+            return "Put data on chain FAILED! MESSAGE:" + result;
+        }
         return key;
+    }
+
+    public byte[][]  getDataFromChaincode(){
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        // 读取时数据的个数匹配
+        count = (int)jsonObject.get("count");
+        JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
+        // TODO 新的范围查询(自定义分页进行查询)
+        results = client.getRecordByRange(
+                this.recordKey,
+                this.chaincodeName,
+                jsonArray
+        );
+        System.out.println("getDataFromChaincode");
+        return results;
     }
 
     /**
@@ -277,7 +321,7 @@ public class BCGISDataStore extends ContentDataStore {
     public Geometry getRecord(){
 
         Geometry geometry;
-        byte[][] results = getDataFromChaincode();
+//        byte[][] results = getDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
         for (byte[] resultByte : results) {
             String resultStr = new String(resultByte);
@@ -306,12 +350,12 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 解析得到属性
+     * 获取属性
      * @return
      */
     public JSONArray getProperty(){
 
-        byte[][] results = getDataFromChaincode();
+//        byte[][] results = getDataFromChaincode();
         JSONObject jsonProp;
         JSONArray jsonArrayProp = new JSONArray();
         for (byte[] resultByte : results) {
@@ -339,36 +383,8 @@ public class BCGISDataStore extends ContentDataStore {
         return jsonArrayProp;
     }
 
-    public byte[][]  getDataFromChaincode(){
-        String result = client.getRecord(
-                this.recordKey,
-                this.chaincodeName,
-                this.functionName
-        );
-        if(result.length() == 0){
-            logger.info("please input correct recordKey");
-        }
-        // TODO 当需要验证有存储的个数和得到的个数是否匹配的时候需要用到下面的 count ，采用它对比得到的 geometry 个数 和 属性的个数
-        JSONObject jsonObject = (JSONObject)JSON.parse(result);
-        count = (int)jsonObject.get("count");
-        byte[][] results = client.getRecordByRange(
-                this.recordKey,
-                this.chaincodeName
-        );
-
-        // TODO 分页查询
-//        int pageSize = 1;
-//        byte[][] results = client.getStateByRangeWithPagination(
-//                this.recordKey,
-//                this.chaincodeName,
-//                pageSize,
-//                count
-//        );
-        return results;
-    }
-
     /**
-     * 之前采用富查询的方式做属性查询（保留，后期可能会用） -----------------> 因为是富查询，所以不需要 key 即可以查，而现在是需要 key 才可以查
+     * 富查询做属性查询（保留，后期可能会用）
      * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
      * @param stringList
      * @return
@@ -414,6 +430,12 @@ public class BCGISDataStore extends ContentDataStore {
      * 通过解析 jsonArrayProp 查询对应的属性，然后得到序号，最后得到相应属性的 geometry
      * TODO 这只是一个方法，后期需要的话再把 key 加进来就可以了
      * @param jsonObject 包含查询的多个 key-->value
+     * @return
+     */
+
+    /**
+     * 解析得到geometry和proto，然后根据查询条件解析属性得到对应的geometry
+     * @param jsonObject
      * @return
      */
     public Geometry queryAttributesByProto(JSONObject jsonObject) {

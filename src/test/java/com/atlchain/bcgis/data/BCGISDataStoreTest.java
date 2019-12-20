@@ -31,18 +31,30 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();  //  /Province/Province_R.shp  /D/D.shp  /chenduqu/chenduqu.shp
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
+                            //  /Province/Province_R.shp  /D/D.shp  /chenduqu/chenduqu.shp    /BL/BL.shp
     private File shpFile = new File(shpURL);
     private String chaincodeName = "bcgiscc";
     private String functionName = "GetRecordByKey";
     private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4"; // 23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
     //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
     //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
-    //  成都区            5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
+    //  成都区         5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
+    //  BL            d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
     private File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
+   // 存时的构造函数
+//    private BCGISDataStore bcgisDataStore = new BCGISDataStore(
+//            networkFile,
+//            shpFile,
+//            chaincodeName,
+//            functionName,
+//            "null"
+//    );
+
+    // 读取时的构造函数
     private BCGISDataStore bcgisDataStore = new BCGISDataStore(
             networkFile,
-            shpFile,
+            new File("11"),
             chaincodeName,
             functionName,
             recordKey
@@ -284,12 +296,11 @@ public class BCGISDataStoreTest {
     @Test
     public void testGetDataFromChain() {
         Geometry geometry = bcgisDataStore.getRecord();
-        System.out.println(geometry.getNumGeometries());
-
+//        System.out.println(geometry.getNumGeometries());
         JSONArray jsonArray = bcgisDataStore.getProperty();
         for(Object o : jsonArray){
             JSONObject json = JSONObject.parseObject(o.toString());
-            System.out.println(json);
+//            System.out.println(json);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSONArray;
 import com.atlchain.sdk.ATLChain;
 
 import java.io.File;
@@ -81,7 +82,26 @@ public class BlockChainClient {
         return result;
     }
 
-    // 分页查询 返回的是一页的数据，组合在一起即可
+    // TODO 2019.12.19根据提示的范围进行范围查询（startkey包含------endkey不包含）
+    public byte[][] getRecordByRange(String recordKey, String chaincodeName, JSONArray jsonArray) {
+
+        byte[][] byteMerger = null;
+        String startKey;
+        String endKey;
+        for(int i = 0; i < jsonArray.size() -1; i ++){
+            startKey = recordKey + "-" + String.format("%05d", jsonArray.get(i));
+            endKey = recordKey + "-" + String.format("%05d", Integer.parseInt(jsonArray.getString(i + 1)));
+            byte[][] result = atlChain.queryByte(
+                    chaincodeName,
+                    "GetRecordByKeyRange",
+                    new byte[][]{startKey.getBytes(), endKey.getBytes()}
+            );
+            byteMerger = byteMerger(byteMerger, result, i);
+        }
+        return byteMerger;
+    }
+
+    // 分页查询 返回的是一页的数据，组合在一起即可  一条一条查没有问题，前面包含，后面不包含
     public byte[][] getStateByRangeWithPagination(String recordKey, String chaincodeName, int pageSize, int allCount) {
         byte[][] byteMerger = null;
         int count = allCount / pageSize +1;

@@ -94,7 +94,7 @@ public class Shp2WkbTest {
      */
     @Test
     public void testQueryFromChain(){
-        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
+        String key = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8-00034";
         String value = client.getRecord(key,"bcgiscc");
         System.out.println(value);
     }
