@@ -75,6 +75,7 @@ public class BCGISDataStore extends ContentDataStore {
         String result = "";
         Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
         ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
+        System.out.println("===================>>>>" + geometryArrayList.size());
         String geometryStr = Utils.getGeometryStr(geometryArrayList);
         String hash = Utils.getSHA256(geometryStr);
         String key = hash;
@@ -175,21 +176,25 @@ public class BCGISDataStore extends ContentDataStore {
         int DataSize = 0;         // 用来表示打次范围内最多的数据
         // 存放单条记录
         JSONArray jsonProps = shp2WKB.getShpFileAttributes();
-        for (int i = 0; i < geometryArrayList.size(); i ++) {
+        // TODO 单个geometry的存放方式是总的对象数前面再加2个零即可
+        int rang = geometryArrayList.size();
+        int tempRang = String.valueOf(rang).length() + 2;
+        for (int i = 0; i < rang; i ++) {
             JSONObject jsonProp = JSONObject.parseObject(jsonProps.get(i).toString());
             Geometry geometry = geometryArrayList.get(i);
             byte[] geoBytes =  protoConvert.dataToProto(geometry, jsonProp);
 
-            // new add
+            // TODO 添加自动分页的存储机制 jsonArray 在读取中使用
             DataSize = DataSize + geoBytes.length;
+            System.out.println("这是第" + i + "个" + geoBytes.length / 1024);
             tmpCount = tmpCount + 1;
-            if(DataSize > 900 * 900 || tmpCount > 900){
+            if(DataSize > 800 * 800 || tmpCount > 900){
                 jsonArray.add(i);
                 DataSize = 0;
                 tmpCount = 0;
             }
 
-            String strIdex = String.format("%05d", i);
+            String strIdex = String.format("%0" + tempRang + "d", i);
             String recordKey = key + "-" + strIdex;
             result = client.putRecord(
                     recordKey,
@@ -343,9 +348,10 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-        if( count != geometryCollection.getNumGeometries()){
-            return null;
-        }
+        // TODO 现在数据比较混乱，暂时不加这个
+//        if( count != geometryCollection.getNumGeometries()){
+//            return null;
+//        }
         return geometryCollection;
     }
 
@@ -377,9 +383,10 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-        if( count != jsonArrayProp.size() ){
-            return null;
-        }
+        // TODO 现在数据比较混乱，暂时不加这个
+//        if( count != jsonArrayProp.size() ){
+//            return null;
+//        }
         return jsonArrayProp;
     }
 

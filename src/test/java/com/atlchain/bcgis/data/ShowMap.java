@@ -19,8 +19,12 @@ public class ShowMap {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-        String DKey = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885";
-        // d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
+        String DKey = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
+        //   D               6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+        //  Province         23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
+        //  BL              d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
+        //  P               b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b
+        //  chenduqu         5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 new File(BCGISDataStoreTest.class.getResource("/network-config-test.yaml").getPath()),
                 new File("E:\\SuperMapData\\D\\D.shp"),

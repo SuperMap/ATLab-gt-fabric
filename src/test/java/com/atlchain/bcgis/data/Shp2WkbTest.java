@@ -69,12 +69,13 @@ public class Shp2WkbTest {
      */
     @Test
     public void testQueryGeometryFromChain() throws ParseException {
-        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-00011";
+        String key = "b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b-197585";
         byte[][] result = client.getRecordBytes(
                 key,
                 "bcgiscc",
                 "GetRecordByKey"
         );
+        System.out.println(result);
 
         // 单个可以读取出来
         JSONObject jsonProp = protoConvert.getPropFromProto(result[0]);
@@ -87,16 +88,15 @@ public class Shp2WkbTest {
 //        System.out.println(geometry.getNumGeometries());
     }
 
-    //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
-    //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
     /**
      * 根据 hashID 查询数据
      */
     @Test
     public void testQueryFromChain(){
-        String key = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8-00034";
+        String key = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885-0000175109";
         String value = client.getRecord(key,"bcgiscc");
         System.out.println(value);
+        System.out.println(String.valueOf(1001).length() + 2);
     }
 
     /**
@@ -115,22 +115,24 @@ public class Shp2WkbTest {
         System.out.println(result);
     }
 
-    //   D   6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4     attributes
+    //   D               6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+    //  BL              d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
+    //  P               b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b
     /**
      * 测试删除指定键值
      */
     @Test
     public void testDeleteByKey(){
-        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
-        for(int i = 0; i < 50; i++) {
-            String strIndex = String.format("%06d", i);
-            String attributes = "attributes";
+        String key = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885-";
+        for(int i = 0; i < 10000; i++) {
+            String strIndex = String.format("%03d", i);
             String recordKey = key  + strIndex;
             String result = client.deleteRecord(
                     recordKey,
                     "bcgiscc",
                     "DeleteRecordByKey"
             );
+            System.out.println(result + "====================》》》》》" + i);
         }
     }
 
@@ -148,6 +150,15 @@ public class Shp2WkbTest {
         String s = Utils.readJsonFile(String.valueOf(geoJsonFile));
         System.out.println(s);
 //        JSONArray jsonArray = (JSONArray)JSON.parse(s);
+    }
+
+
+
+    @Test
+    public void test44(){
+        int t = 1111111;
+        String s = String.format("%010d", t);
+        System.out.println(s);
     }
 
 }

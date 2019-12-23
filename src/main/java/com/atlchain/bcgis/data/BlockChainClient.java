@@ -85,12 +85,13 @@ public class BlockChainClient {
     // TODO 2019.12.19根据提示的范围进行范围查询（startkey包含------endkey不包含）
     public byte[][] getRecordByRange(String recordKey, String chaincodeName, JSONArray jsonArray) {
 
+        int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
         byte[][] byteMerger = null;
         String startKey;
         String endKey;
         for(int i = 0; i < jsonArray.size() -1; i ++){
-            startKey = recordKey + "-" + String.format("%05d", jsonArray.get(i));
-            endKey = recordKey + "-" + String.format("%05d", Integer.parseInt(jsonArray.getString(i + 1)));
+            startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
+            endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
             byte[][] result = atlChain.queryByte(
                     chaincodeName,
                     "GetRecordByKeyRange",

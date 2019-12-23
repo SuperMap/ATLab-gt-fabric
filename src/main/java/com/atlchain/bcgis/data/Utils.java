@@ -1,5 +1,6 @@
 package com.atlchain.bcgis.data;
 
+import org.glassfish.json.JsonUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -11,6 +12,7 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -137,6 +139,41 @@ public class Utils {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static byte[][] byteMerger(byte[][] bt1, byte[][] bt2, int count){
+        byte[][] bt3 = null;
+        if(count == 0){
+            bt3 = bt2;
+        }else{
+            bt3 = new byte[bt1.length+bt2.length][];
+            System.arraycopy(bt1, 0, bt3, 0, bt1.length);
+            System.arraycopy(bt2, 0, bt3, bt1.length, bt2.length);
+        }
+        return bt3;
+    }
+
+    public static byte[] byteSpilt(byte[] bytes, int size){
+        double splitLength = Double.parseDouble(size + "");
+        int arrayLength = (int) Math.ceil(bytes.length / splitLength);
+
+        byte[][] result = new byte[arrayLength][];
+        int from, to;
+        for (int i = 0; i < arrayLength; i++) {
+
+            from = (int) (i * splitLength);
+            to = (int) (from + splitLength);
+            if (to > bytes.length)
+                to = bytes.length;
+            result[i] = Arrays.copyOfRange(bytes, from, to);
+        }
+        return bytes;
+    }
+
+    public static void main(String[] args) {
+        byte[] bytes = "test".getBytes();
+        byte[] bytes1 = byteSpilt(bytes, 3);
+        System.out.println(bytes.length == bytes1.length);
     }
 
 
