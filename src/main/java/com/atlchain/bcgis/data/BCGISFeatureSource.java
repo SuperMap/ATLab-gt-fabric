@@ -19,6 +19,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -41,6 +42,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         FeatureCollection featureCollection = getFeatures();
         FeatureIterator iterator = featureCollection.features();
         ReferencedEnvelope env = DataUtilities.bounds(iterator);
+        System.out.println("================" + env);
         return env;
 
     }
@@ -63,6 +65,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected SimpleFeatureType buildFeatureType() {
 
+        logger.info("buildFeatureType");
         SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
 
         builder.setName(entry.getName());
@@ -89,6 +92,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
                 builder.add("geom", Polygon.class);
             }
         }
+        System.out.println("添加属性环节");
         // TODO  在 reader/getFeature 中增加属性时，这里需要先将有哪些属性告诉对方，然后再添加
         JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(0).toString());
         Set<String> keys =  jsonObject.keySet();

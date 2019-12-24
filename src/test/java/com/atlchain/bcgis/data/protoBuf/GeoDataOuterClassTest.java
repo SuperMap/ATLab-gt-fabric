@@ -28,7 +28,7 @@ public class GeoDataOuterClassTest {
      * proto 数据的序列化与反序列化测试
      */
     @Test
-    public void testProto(){
+    public void testProto() throws ParseException {
 
         ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
         JSONArray jsonProps = shp2WKB.getShpFileAttributes();

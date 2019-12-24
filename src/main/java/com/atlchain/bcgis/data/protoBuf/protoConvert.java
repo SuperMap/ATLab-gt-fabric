@@ -40,6 +40,7 @@ public class protoConvert {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try {
             outData.writeTo(output);
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,6 +62,7 @@ public class protoConvert {
             geometry = Utils.getGeometryFromBytes(geometryBytes);
         } catch (ParseException e) {
             e.printStackTrace();
+            return null;
         }
         return geometry;
     }
@@ -87,6 +89,7 @@ public class protoConvert {
         GeoDataOuterClass.GeoData protoBuilder = null;
         try {
             protoBuilder = GeoDataOuterClass.GeoData.parseFrom(input);
+            input.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

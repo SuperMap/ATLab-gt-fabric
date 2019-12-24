@@ -120,14 +120,25 @@ public class Shp2Wkb {
             }
             SimpleFeatureCollection featureCollection = featureSource.getFeatures();
             SimpleFeatureIterator featureIterator = featureCollection.features();
+            int i = 0;
+            List<Object> list;
             while (featureIterator.hasNext()) {
                 SimpleFeature feature = featureIterator.next();
                 JSONObject jsonObject = new JSONObject();
-                for(String str : attributeID){
-                    String attribute = feature.getAttribute(str).toString();
-                    jsonObject.put(str, attribute);
+                list = feature.getAttributes();
+                for(int k = 1; k < list.size(); k++ ){
+                    jsonObject.put(attributeID.get(k-1), list.get(k));
                 }
+//                for(String str : attributeID){
+//                    String attribute = feature.getAttribute(str).toString();
+//                    jsonObject.put(str, attribute);
+//                }
                 jsonArray.add(jsonObject);
+                jsonObject = null;
+                i++;
+                if(String.valueOf(i).equals("246")){
+                    System.out.println(i);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

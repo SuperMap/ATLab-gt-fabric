@@ -96,7 +96,9 @@ public class Shp2WkbTest {
         String key = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885-0000175109";
         String value = client.getRecord(key,"bcgiscc");
         System.out.println(value);
-        System.out.println(String.valueOf(1001).length() + 2);
+        for(int i = 0; i < 99; i++){
+            System.out.println(String.format("%0" + String.valueOf(5).length() + "d", i));
+        }
     }
 
     /**

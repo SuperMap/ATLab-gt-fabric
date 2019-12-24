@@ -98,7 +98,9 @@ public class BlockChainClient {
                     new byte[][]{startKey.getBytes(), endKey.getBytes()}
             );
             byteMerger = byteMerger(byteMerger, result, i);
+            result = null;
         }
+        logger.info("读取数据成功");
         return byteMerger;
     }
 
@@ -120,15 +122,15 @@ public class BlockChainClient {
     }
 
     public static byte[][] byteMerger(byte[][] bt1, byte[][] bt2, int count){
-        byte[][] bt3 = null;
+        byte[][] byteMerger = null;
         if(count == 0){
-            bt3 = bt2;
+            byteMerger = bt2;
         }else{
-            bt3 = new byte[bt1.length+bt2.length][];
-            System.arraycopy(bt1, 0, bt3, 0, bt1.length);
-            System.arraycopy(bt2, 0, bt3, bt1.length, bt2.length);
+            byteMerger = new byte[bt1.length+bt2.length][];
+            System.arraycopy(bt1, 0, byteMerger, 0, bt1.length);
+            System.arraycopy(bt2, 0, byteMerger, bt1.length, bt2.length);
         }
-        return bt3;
+        return byteMerger;
     }
 
 

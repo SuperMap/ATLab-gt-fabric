@@ -171,7 +171,7 @@ public class Utils {
     }
 
     public static void main(String[] args) {
-        byte[] bytes = "test".getBytes();
+        byte[] bytes = "tefdsfsdfsadfsdfst".getBytes();
         byte[] bytes1 = byteSpilt(bytes, 3);
         System.out.println(bytes.length == bytes1.length);
     }
