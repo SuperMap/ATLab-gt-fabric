@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import com.google.common.io.Files;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
@@ -168,7 +169,7 @@ public class BCGISDataStore extends ContentDataStore {
         argsJson.put("hash", key);
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
-        // TODO 这里做一个判断，先整体查询一遍，如果 hash 是吻合的，那么说明已经存储过了，就不需要在存储一次了
+        // 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
         String result1 = client.getRecord(
                 key,
                 this.chaincodeName,
@@ -181,8 +182,7 @@ public class BCGISDataStore extends ContentDataStore {
                 return key;
             }
         } else {
-
-            // TODO 这里设计一个范围查询的列表以 JSONArray 的形式存储，代表着查询的范围，根据每一范围的数据量最多为 900 和每一范围最大为 1024 kb
+            // 自定义范围查询（一组范围最多800条或累计超800KB），范围存储在 JSONArray
             JSONArray jsonArray = new JSONArray();
             jsonArray.add(0);
 
@@ -191,7 +191,7 @@ public class BCGISDataStore extends ContentDataStore {
             int maxLimit = 800;              // 一次最多存储的个数  定900不行
             // 存放单条记录
             JSONArray jsonProps = shp2WKB.getShpFileAttributes();
-            // TODO 单个geometry的存放方式是总的对象数前面再加2个零即可
+            // 单个geometry的键值设计 "key" + "-" + String.format("%0" + tempRang + "d", i);
             int rang = geometryArrayList.size();
             int tempRang = String.valueOf(rang).length() + 2;
 
@@ -206,7 +206,7 @@ public class BCGISDataStore extends ContentDataStore {
                 if (min > max) {
                     max = min;
                 }
-                // TODO 自动分页的存储机制 jsonArray 在读取中使用
+                // 自动分页的存储机制 jsonArray 在读取中使用
                 DataSize = DataSize + geoBytes.length;
                 tmpCount = tmpCount + 1;
                 if (DataSize > 1024 * maxLimit || tmpCount > 900) {
@@ -228,8 +228,8 @@ public class BCGISDataStore extends ContentDataStore {
                     return "Put data on chain FAILED! MESSAGE:" + result;
                 }
             }
-            System.out.println("单条数据最大值为" + max + "KB");
-            jsonArray.add(rang); // 范围完成 从 0 开始 到最后结束
+            logger.info("单条数据最大值为" + max + "KB");
+            jsonArray.add(rang);
             argsJson.put("readRange", jsonArray);
             String args = argsJson.toJSONString();
             // 整体信息存储
@@ -348,6 +348,7 @@ public class BCGISDataStore extends ContentDataStore {
      */
     public Geometry getRecord(){
 
+        logger.info("开始空间几何信息解析");
         Geometry geometry = null;
 //        byte[][] results = getDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
@@ -360,10 +361,7 @@ public class BCGISDataStore extends ContentDataStore {
                 byte[] bytes = Base64.getDecoder().decode(recordBase64);
                 geometry = protoConvert.getGeometryFromProto(bytes);
                 geometryArrayList.add(geometry);
-                geometry = null;
             }
-            jsonArray = null;
-            resultStr = null;
         }
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
@@ -375,13 +373,11 @@ public class BCGISDataStore extends ContentDataStore {
             }
         }
         // TODO 现在数据比较混乱，暂时不加这个
-//        if( count != geometryCollection.getNumGeometries()){
-//            return null;
-//        }
+        if( count != geometryCollection.getNumGeometries()){
+            return null;
+        }
         logger.info("getRecord is success");
         logger.info("完成几何信息解析，总共" + geometryCollection.getNumGeometries() + "条");
-
-        List<Object> list = new LinkedList<>();
         return geometryCollection;
     }
 
@@ -401,14 +397,10 @@ public class BCGISDataStore extends ContentDataStore {
             for (Object obj : jsonArray){
                 JSONObject jsonObj = (JSONObject) obj;
                 String recordBase64 = (String)jsonObj.get("Record");
-                jsonObj = null;
                 byte[] bytes = Base64.getDecoder().decode(recordBase64);
                 jsonProp = protoConvert.getPropFromProto(bytes);
-                bytes = null;
                 jsonArrayProp.add(jsonProp);
-                jsonProp = null;
             }
-            resultStr = null;
         }
         if (jsonArrayProp == null) {
             try {
@@ -418,9 +410,9 @@ public class BCGISDataStore extends ContentDataStore {
             }
         }
         // TODO 现在数据比较混乱，暂时不加这个
-//        if( count != jsonArrayProp.size() ){
-//            return null;
-//        }
+        if( count != jsonArrayProp.size() ){
+            return null;
+        }
         logger.info("getProperty is success");
         logger.info("完成几何信息解析，总共" + jsonArrayProp.size() + "条");
         return jsonArrayProp;

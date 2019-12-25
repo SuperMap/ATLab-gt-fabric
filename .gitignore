@@ -7,3 +7,4 @@
 /bin/
 /src/main/main.iml
 .gradle/*
+/src/test/resources

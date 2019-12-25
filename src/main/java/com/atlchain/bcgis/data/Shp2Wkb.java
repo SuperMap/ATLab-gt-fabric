@@ -4,21 +4,22 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
+import org.geotools.data.shapefile.ShapefileDataStore;
+import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -108,8 +109,10 @@ public class Shp2Wkb {
         JSONArray jsonArray = new JSONArray();
         try {
             FileDataStore store = FileDataStoreFinder.getDataStore(shpFile);
+            // GeoTools读取ShapeFile文件的默认编码为ISO-8859-1。而我们中文操作系统下ShapeFile文件的默认编码一般为utf-8
+            ((ShapefileDataStore) store).setCharset(Charset.forName("utf-8"));
             SimpleFeatureSource featureSource = store.getFeatureSource();
-            // 提取出属性的 ID 值
+            // 提取属性 ID
             List<String> attributeID = new LinkedList<>();
             List<AttributeDescriptor> attrList= featureSource.getSchema().getAttributeDescriptors();
             for(AttributeDescriptor attr : attrList){
@@ -127,16 +130,11 @@ public class Shp2Wkb {
                 JSONObject jsonObject = new JSONObject();
                 list = feature.getAttributes();
                 for(int k = 1; k < list.size(); k++ ){
-                    jsonObject.put(attributeID.get(k-1), list.get(k));
+                    jsonObject.put(attributeID.get(k-1),  list.get(k));
                 }
-//                for(String str : attributeID){
-//                    String attribute = feature.getAttribute(str).toString();
-//                    jsonObject.put(str, attribute);
-//                }
                 jsonArray.add(jsonObject);
-                jsonObject = null;
                 i++;
-                if(String.valueOf(i).equals("246")){
+                if(String.valueOf(i).equals("247")){
                     System.out.println(i);
                 }
             }

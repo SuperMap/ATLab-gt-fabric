@@ -60,6 +60,7 @@ public class protoConvert {
         Geometry geometry = null;
         try {
             geometry = Utils.getGeometryFromBytes(geometryBytes);
+            geometryBytes = null;
         } catch (ParseException e) {
             e.printStackTrace();
             return null;

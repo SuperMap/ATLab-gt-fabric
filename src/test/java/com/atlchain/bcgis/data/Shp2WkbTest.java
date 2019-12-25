@@ -17,7 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Shp2WkbTest {
-    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();//   /Point/Point
+    private String shpURL = this.getClass().getResource("/Country_R/Country_R.shp").getFile();//   /Point/Point  /Country_R/Country_R.shp
     private File shpFile = new File(shpURL);
     private Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
     private BlockChainClient client;
@@ -161,6 +161,11 @@ public class Shp2WkbTest {
         int t = 1111111;
         String s = String.format("%010d", t);
         System.out.println(s);
+    }
+
+    @Test
+    public void test22(){
+        shp2WKB.getShpFileAttributes();
     }
 
 }
