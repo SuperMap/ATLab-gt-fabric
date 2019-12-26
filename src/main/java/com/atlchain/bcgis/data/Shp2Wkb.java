@@ -85,11 +85,13 @@ public class Shp2Wkb {
      */
     private ArrayList<Geometry> readShpFile()  {
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        SimpleFeatureIterator featureIterator = null;
         try {
             FileDataStore store = FileDataStoreFinder.getDataStore(shpFile);
             SimpleFeatureSource featureSource = store.getFeatureSource();
+            store.dispose();
             SimpleFeatureCollection featureCollection = featureSource.getFeatures();
-            SimpleFeatureIterator featureIterator = featureCollection.features();
+            featureIterator = featureCollection.features();
             while (featureIterator.hasNext()) {
                 SimpleFeature feature = featureIterator.next();
                 Object geomObj = feature.getDefaultGeometry();
@@ -98,6 +100,7 @@ public class Shp2Wkb {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return geometryArrayList;
     }
 
@@ -111,6 +114,7 @@ public class Shp2Wkb {
             FileDataStore store = FileDataStoreFinder.getDataStore(shpFile);
             // GeoTools读取ShapeFile文件的默认编码为ISO-8859-1。而我们中文操作系统下ShapeFile文件的默认编码一般为utf-8
             ((ShapefileDataStore) store).setCharset(Charset.forName("utf-8"));
+            store.dispose();
             SimpleFeatureSource featureSource = store.getFeatureSource();
             // 提取属性 ID
             List<String> attributeID = new LinkedList<>();
