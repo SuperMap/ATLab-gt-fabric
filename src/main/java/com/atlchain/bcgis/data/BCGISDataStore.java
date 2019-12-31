@@ -44,7 +44,8 @@ public class BCGISDataStore extends ContentDataStore {
     private BlockChainClient client;
     private File shpFile;
     private int count;
-//    private byte[][] results ;
+    private byte[][] geometryResults ;
+    private byte[][] propResults ;
 
     public BCGISDataStore(
             File networkConfigFile,
@@ -60,7 +61,8 @@ public class BCGISDataStore extends ContentDataStore {
         this.shpFile = shpFile;
         if( !recordKey.equals("null") ){
             this.recordKey = recordKey; // 获取外界的  key 进行发布  先判断，假如有的话那就不再计算了
-//            this.results = getDataFromChaincode();
+            this.geometryResults = getGeometryDataFromChaincode();
+            this.propResults = getPropDataFromChaincode();
         } else {
             try {
                 this.recordKey = putDataOnBlockchainByProto();
@@ -71,89 +73,139 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * TODO 之前的存入区块链的方法，后面需要删除
+     *  数据存入区块链
      * @param shpFile
      * @return
      * @throws IOException
      */
     public String putDataOnBlockchain(File shpFile) throws IOException {
-        String fileName = shpFile.getName();
 
+        String fileName = shpFile.getName();
         String ext = Files.getFileExtension(fileName);
         if(!"shp".equals(ext)) {
             throw new IOException("Only accept shp file");
         }
 
+        // 编写整体信息  整体信息最后存储
         String result = "";
         Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
         ArrayList<Geometry> geometryArrayList = shp2WKB.getGeometry();
-        System.out.println("===================>>>>" + geometryArrayList.size());
+        JSONArray geometryProperty = shp2WKB.getShpFileAttributes();
         String geometryStr = Utils.getGeometryStr(geometryArrayList);
         String hash = Utils.getSHA256(geometryStr);
         String key = hash;
-//        System.out.println(key);
+        System.out.println(key);
         String mapname = fileName.substring(0, fileName.lastIndexOf("."));
-
         JSONObject argsJson = new JSONObject();
         argsJson.put("mapname", mapname);
         argsJson.put("count", geometryArrayList.size());
         argsJson.put("hash", key);
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
-        String args = argsJson.toJSONString();
-        //存放整个的记录，读取时采用按范围索引
-        result = client.putRecord(
-                key,
-                args,
-                chaincodeName,
-                "PutRecord"
-        );
-        if (!result.contains("successfully")) {
-            return "Put data on chain FAILED! MESSAGE:" + result;
-        }
 
-        // 存放属性值
-        JSONArray jsonArrayAttributes = shp2WKB.getShpFileAttributes();
-        for(int i = 0; i < jsonArrayAttributes.size(); i++ ){
-            JSONObject JsonAttributes = new JSONObject();
-            String attributesKey = "attributes" + key +  "-" + String.format("%05d", i);
-            JsonAttributes.put("Name", jsonArrayAttributes.get(i));
-            JsonAttributes.put("mapName", hash);
-            String Attributes = JsonAttributes.toJSONString();
+        // TODO 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
+        String result1 = client.getRecord(
+                key,
+                this.chaincodeName,
+                this.functionName
+        );
+        if(result1.length() == 0){
+            JSONObject jsonObject = (JSONObject)JSON.parse(result1);
+            String hash1 = (String) jsonObject.get("hash");
+            if(hash1.equals(key)) {
+                return key;
+            }
+        } else {
+
+            // TODO 存放单条空间几何记录 自定义范围查询（一组范围最多800条或累计超800KB），范围存储在 JSONArray
+            JSONArray jsonArray = new JSONArray();
+            jsonArray.add(0);
+            int tmpCount = 0;                 // 用来计数最大为 900
+            int DataSize = 0;                 // 表示单条范围内最多的数据
+            int maxLimit = 800;              // 一次最多存储的个数  定900不行
+            // 单个geometry的键值设计 "key" + "-" + String.format("%0" + tempRang + "d", i);
+            int rang = geometryArrayList.size();
+            int tempRang = String.valueOf(rang).length() + 2;
+            int max = 0;
+            for (int i = 0; i < rang; i++) {
+                Geometry geometry = geometryArrayList.get(i);
+                byte[] geoBytes = Utils.getBytesFromGeometry(geometry);
+                int min = geoBytes.length / 1024;
+                if (min > max) {
+                    max = min;
+                }
+                // 自动分页的存储机制 jsonArray 在读取中使用
+                DataSize = DataSize + geoBytes.length;
+                tmpCount = tmpCount + 1;
+                if (DataSize > 1024 * maxLimit || tmpCount > 900) {
+                    jsonArray.add(i);
+                    System.out.println("分页大小为" + (DataSize - geoBytes.length) / 1024 + "KB");
+                    DataSize = 0;
+                    tmpCount = 0;
+                }
+                String strIdex = String.format("%0" + tempRang + "d", i);
+                String recordKey = key + "-" + strIdex;
+                result = client.putRecord(
+                        recordKey,
+                        geoBytes,
+                        chaincodeName,
+                        "PutRecordBytes"
+                );
+                if (!result.contains("successfully")) {
+                    return "Put data on chain FAILED! MESSAGE:" + result;
+                }
+            }
+            logger.info("空间几何信息存储完毕，单条数据最大值为" + max + "KB");
+
+            // TODO 存储单条geometry属性信息 (后期将其修改到数据一起存)
+            for(int i = 0; i < geometryProperty.size(); i++ ) {
+                String propKey = "prop" + key + "-" + String.format("%0" + tempRang + "d", i);
+                String contactKey = key + "-" + String.format("%0" + tempRang + "d", i);
+                JSONObject json = (JSONObject) geometryProperty.get(i);
+                json.put("hash", contactKey);
+                String propValue = json.toJSONString();
+                result = client.putRecord(
+                        propKey,
+                        propValue,
+                        chaincodeName,
+                        "PutRecord"
+                );
+                if (!result.contains("successfully")) {
+                    return "Put data on chain FAILED! MESSAGE:" + result;
+                }
+            }
+            logger.info("属性信息存储完毕");
+
+            // TODO 将该对象拥有的属性字段也存储进去
+            JSONArray geoProperty = shp2WKB.getShpFileAttributes();
+            JSONObject jsonProp = (JSONObject)geoProperty.get(0);
+            Set<String> keys =  jsonProp.keySet();
+            JSONArray Prop = new JSONArray();
+            for(String s : keys){
+                Prop.add(s);
+            }
+            argsJson.put("prop", Prop);
+            argsJson.put("rang", tempRang);
+            // TODO 存储整体信息
+            jsonArray.add(rang);
+            argsJson.put("readRange", jsonArray);
+            String args = argsJson.toJSONString();
             result = client.putRecord(
-                    attributesKey,
-                    Attributes,
+                    key,
+                    args,
                     chaincodeName,
                     "PutRecord"
             );
             if (!result.contains("successfully")) {
                 return "Put data on chain FAILED! MESSAGE:" + result;
             }
-        }
-
-        // 存放单条记录
-        int index = 0;
-        for (Geometry geo : geometryArrayList) {
-            byte[] geoBytes = Utils.getBytesFromGeometry(geo);
-            String strIndex = String.format("%05d", index);
-            String recordKey = key + "-" + strIndex;
-            result = client.putRecord(
-                    recordKey,
-                    geoBytes,
-                    chaincodeName,
-                    "PutRecordBytes"
-            );
-            index++;
-            if (!result.contains("successfully")) {
-                return "Put data on chain FAILED! MESSAGE:" + result;
-            }
-            //            Thread.sleep(1000);
+            logger.info("整体信息存储完毕");
         }
         return result;
     }
 
     /**
-     * 以 proto 的格式将数据存入到区块链
+     * 以 proto 的格式将数据存入到区块链（后面会删除）
      * @return
      * @throws IOException
      */
@@ -261,7 +313,7 @@ public class BCGISDataStore extends ContentDataStore {
      * 第二次读取的时候直接先判断本地有没有数据，有的话直接返回数据即可
      * @return
      */
-    public byte[][]  getDataFromChaincode(){
+    public byte[][]  getGeometryDataFromChaincode(){
         String result = client.getRecord(
                 this.recordKey,
                 this.chaincodeName,
@@ -272,55 +324,78 @@ public class BCGISDataStore extends ContentDataStore {
         }
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
         // 读取时数据的个数匹配
-        count = (int)jsonObject.get("count");
         JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
         // TODO 新的范围查询(自定义分页进行查询)
-        byte[][] results = client.getRecordByRange(
+        geometryResults = client.getRecordByRange(
                 this.recordKey,
                 this.chaincodeName,
                 jsonArray
         );
         logger.info("getDataFromChaincode is success");
-        return results;
+        return geometryResults;
     }
 
     /**
-     * 之前的获取数据的方式
+     * 属性查询结果
      * @return
      */
-    public Geometry getRecordOld(){
-
+    public byte[][]  getPropDataFromChaincode(){
         String result = client.getRecord(
                 this.recordKey,
                 this.chaincodeName,
                 this.functionName
         );
-
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
-        int count = (int)jsonObject.get("count");
+        JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
+        String key = "prop" + this.recordKey;
+        propResults = client.getRecordByRange(
+                key,
+                this.chaincodeName,
+                jsonArray
+        );
+        return propResults;
+    }
 
-        Geometry geometry = null;
-        // TODO 范围查询
-        byte[][] results = client.getRecordByRange(
+    /**
+     * 单个属性依靠 hash 查询 ==============>这种方式太慢了
+     * @param index
+     * @return
+     */
+    public JSONObject getSinglePropFromChainCode(int index){
+        String result = client.getRecord(
                 this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        String rang = jsonObject.get("rang").toString();
+        String propKey = "prop" + this.recordKey+ "-" + String.format("%0" + rang + "d", index);
+        String prop = client.getRecord(
+                propKey,
                 this.chaincodeName
         );
-        // TODO 分页查询
-//        int pageSize = 1;
-//        byte[][] results = client.getStateByRangeWithPagination(
-//                this.recordKey,
-//                this.chaincodeName,
-//                pageSize,
-//                count
-//        );
+        JSONObject jsonProp = JSONObject.parseObject(prop);
+        return jsonProp;
+    }
 
+    /**
+     * 获取空间几何数据
+     * @return
+     */
+    public Geometry getRecord(){
+        logger.info("开始空间几何信息解析");
+        Geometry geometry = null;
+//        byte[][] geometryResults = getGeometryDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
-        for (byte[] resultByte : results) {
+        for (byte[] resultByte : geometryResults) {
             String resultStr = new String(resultByte);
             JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
-//            if (count != jsonArray.size()) {
-//                return null;
-//            }
             for (Object obj : jsonArray){
                 JSONObject jsonObj = (JSONObject) obj;
                 String recordBase64 = (String)jsonObj.get("Record");
@@ -335,7 +410,6 @@ public class BCGISDataStore extends ContentDataStore {
         }
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
-
         if (geometryArrayList == null) {
             try {
                 throw new IOException("Blockchain record is not available");
@@ -343,17 +417,10 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-
-//        // TODO 调换读取数据的方式，是地图根据属性进行查询，最后以地图展示
-//        List<String> stringList = new ArrayList<>();
-//        String key = "beijing";
-//        String hash = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
-//        //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4      属性  D
-//        //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8     属性 省市行政区名
-//        stringList.add(key);
-//        stringList.add(hash);
-//        GeometryCollection geometryCollection = (GeometryCollection) getRecordByAttributes(stringList);
-//        System.out.println("===" + geometryCollection);
+//        if( count != geometryCollection.getNumGeometries()){
+//            return null;
+//        }
+        logger.info("完成空间几何信息解析");
         return geometryCollection;
     }
 
@@ -361,12 +428,12 @@ public class BCGISDataStore extends ContentDataStore {
      * 获取空间几何数据
      * @return
      */
-    public Geometry getRecord(){
+    public Geometry getRecordByProto(){
         // TODO 在解析为 几何对象和属性时可不可以直接转为先读取本地文件
 
         logger.info("开始空间几何信息解析");
         Geometry geometry = null;
-        byte[][] results = getDataFromChaincode();
+        byte[][] results = getGeometryDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
         for (byte[] resultByte : results) {
             String resultStr = new String(resultByte);
@@ -396,14 +463,51 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * TODO 获取全部的属性值
-     * 现在的方式是先读取保存为文件，所以属性时直接读取文件即可
-     * 获取属性
+     * 整体属性
      * @return
      */
     public JSONArray getProperty(){
 
-        byte[][] results = getDataFromChaincode();
+        logger.info("开始属性查询");
+//        byte[][] propResults = getPropDataFromChaincode();
+        JSONArray jsonArrayProp = new JSONArray();
+        for (byte[] resultByte : propResults) {
+            String resultStr = new String(resultByte);
+            JSONArray jonArray = (JSONArray)JSON.parse(resultStr);
+            for (Object obj : jonArray){
+                JSONObject jsonObj = (JSONObject) obj;
+                String recordBase64 = (String)jsonObj.get("Record");
+                byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                String tmpString = new String(bytes);
+                JSONObject json = JSONObject.parseObject(tmpString);
+                json.remove("hash");
+                // 为节省空间，这里只将值传输给那边解析即可，键有顺序就行
+                Set<String> keys = json.keySet();
+                JSONArray jsonArrayTmp = new JSONArray();
+                for (String propKey : keys) {
+                    String value = json.getString(propKey);
+                    if (value.length() == 0) {
+                        jsonArrayTmp.add("null");
+                    } else {
+                        jsonArrayTmp.add(value);
+                    }
+                }
+                jsonArrayProp.add(jsonArrayTmp);
+            }
+        }
+        logger.info("属性解析完毕");
+        return jsonArrayProp;
+    }
+
+    /**
+     * 获取全部的属性值
+     * 现在的方式是先读取保存为文件，所以属性时直接读取文件即可
+     * 获取属性
+     * @return
+     */
+    public JSONArray getPropertyByProto(){
+
+        byte[][] results = getGeometryDataFromChaincode();
         logger.info("开始属性解析");
         JSONObject jsonProp;
         JSONArray jsonArrayProp = new JSONArray();
@@ -447,35 +551,12 @@ public class BCGISDataStore extends ContentDataStore {
         return jsonArrayProp;
     }
 
+
     /**
-     * TODO 获取属性信息字段
-     * @param index
+     * TODO 获取属性信息字段 和整体类型
      * @return
      */
-    public JSONObject getPropertynName(int index){
-        logger.info("获取属性信息字段");
-        String tmpFile = "E:\\SuperMapData\\BCGISDataStoreTmpFile";
-        File file = new File(tmpFile + File.separator + this.recordKey + String.valueOf(index));
-        byte[] temp = Utils.getFileBytes(String.valueOf(file));
-        byte[][] results = Utils.TwoArry(temp);
-        JSONObject jsonProp = new JSONObject();
-        for (byte[] resultByte : results) {
-            String resultStr = new String(resultByte);
-            JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
-            for (Object obj : jsonArray){
-                JSONObject jsonObj = (JSONObject) obj;
-                String recordBase64 = (String)jsonObj.get("Record");
-                byte[] bytes = Base64.getDecoder().decode(recordBase64);
-                jsonProp = protoConvert.getPropFromProto(bytes);
-                break;
-            }
-        }
-        logger.info("属性字段获取完毕");
-        return jsonProp;
-    }
-
-    public String getGeotype(){
-
+    public List<Object> getPropertynName(){
         String result = client.getRecord(
                 this.recordKey,
                 this.chaincodeName,
@@ -484,14 +565,17 @@ public class BCGISDataStore extends ContentDataStore {
         if(result.length() == 0){
             logger.info("please input correct recordKey");
         }
+        List<Object> list = new LinkedList<>();
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
-        // 读取时数据的个数匹配
         String geotype = jsonObject.get("geotype").toString();
-        return geotype;
+        JSONArray jsonArray = (JSONArray) jsonObject.get("prop");
+        list.add(geotype);
+        list.add(jsonArray);
+        return list;
     }
 
     /**
-     * 富查询做属性查询（保留，后期可能会用）
+     * TODO 富查询做属性查询
      * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
      * @param stringList
      * @return
@@ -533,9 +617,10 @@ public class BCGISDataStore extends ContentDataStore {
         return geometryCollection;
     }
 
+
     /**
      * 解析得到geometry和proto，然后根据查询条件解析属性得到对应的geometry
-     * TODO 这只是一个方法，后期需要的话再把 key 加进来就可以了
+     * TODO 这只是一个方法，后期需要的话再把 key 加进来就可以了 （因为这是基于proto格式的属性查询，现在有富查询之后，可能不在使用）
      * @param jsonObject
      * @return
      */
@@ -579,7 +664,6 @@ public class BCGISDataStore extends ContentDataStore {
 //        String tempname = "tempfeaturesType" ;
 //        Name name = new NameImpl(namespaceURI, this.recordKey);
 //        return Collections.singletonList(name);
-
         // new add
         return Collections.singletonList(getTypeName());
     }

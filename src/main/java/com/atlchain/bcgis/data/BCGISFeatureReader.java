@@ -26,15 +26,10 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     Logger logger = Logger.getLogger(BCGISFeatureReader.class.toString());
 
     protected ContentState state;
-
     protected Geometry geometry;
-
     protected JSONArray jsonArray;
-
     protected SimpleFeatureBuilder builder;
-
     private GeometryFactory geometryFactory;
-
     private int index = 0;
 
     /**
@@ -55,7 +50,6 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 
     @Override
     public SimpleFeatureType getFeatureType() {
-
         return (SimpleFeatureType) state.getFeatureType();
     }
 
@@ -68,8 +62,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             next = null;
         }else{
             Geometry geom = geometry.getGeometryN(index);
-//            JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(index).toString());
-//            feature = getFeature(geom, jsonObject);
+//            JSONObject json = (JSONObject) jsonArray.get(index);
             JSONArray json = (JSONArray) jsonArray.get(index);
             feature = getFeature(geom, json);
         }
@@ -77,7 +70,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     }
 
     // TODO 想节流这里就只根据 ID 获取信息即可看行不行 （每次从区块链读取）
-    private SimpleFeature getFeature(Geometry geometry, JSONArray jsonArray) {
+    private SimpleFeature getFeature(Geometry geometry, JSONArray json) {
         if(geometry == null){
             return null;
         }
@@ -85,22 +78,20 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 //        builder.set("geom", geometry);
         builder.set("geom", geometryFactory.createGeometry(geometry));
 
-//        System.out.println(builder.getFeatureType().getTypes());
-        List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
-
-        // TODO 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一般的空间
-//        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
-
-        for(int k = 0; k < jsonArray.size(); k ++){
-            String key = list.get(k + 1).getLocalName();
-            String value = jsonArray.get(k).toString();
-            builder.set(key, value);
-        }
 //        Set<String> keys =  jsonObject.keySet();
 //        for(String key : keys){
 //            String value = jsonObject.get(key).toString();
 //            builder.set(key, value);
 //        }
+
+        // TODO 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一半空间
+        List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
+//        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
+        for(int k = 0; k < json.size(); k ++){
+            String key = list.get(k + 1).getLocalName();
+            String value = json.get(k).toString();
+            builder.set(key, value);
+        }
         return builder.buildFeature(state.getEntry().getTypeName() + "." + index);
     }
 
@@ -109,11 +100,11 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         if (index < geometry.getNumGeometries()){
             return true;
         } else if (geometry == null){
-            jsonArray = null;
             return  false;
         } else {
-            JSONArray jsonArray = new JSONArray();
-            next = getFeature(geometry, jsonArray);
+            JSONObject jsonObject = new JSONObject();
+            JSONArray json = new JSONArray();
+            next = getFeature(geometry, json);
             return false;
         }
     }
@@ -122,6 +113,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     public void close() {
         if(geometry != null){
             geometry = null;
+            jsonArray = null;
         }
         builder = null;
         geometryFactory = null;

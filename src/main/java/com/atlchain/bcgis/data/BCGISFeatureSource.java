@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FeatureReader;
+import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
 import org.geotools.data.shapefile.shp.ShapefileHeader;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -46,21 +47,18 @@ public class BCGISFeatureSource extends ContentFeatureSource {
 
 //        FeatureCollection featureCollection = getFeatures();
 //        FeatureIterator iterator = featureCollection.features();
-//        // TODO 这种计算范围的方法需要在改进下
-//        ReferencedEnvelope env = DataUtilities.bounds(featureCollection);
-//        logger.info("计算范围" + env);
-//        iterator.close();
-//        return env;
-        ShapefileHeader header = new ShapefileHeader();
-
-
-
-        BCGISDataStore bcgisDataStore = getDataStore();
-        SimpleFeatureSource bcgisFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
+        SimpleFeatureSource bcgisFeatureSource = getDataStore().getFeatureSource(getDataStore().getTypeNames()[0]);
         SimpleFeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
-        ReferencedEnvelope env = featureCollection.getBounds();
-
+        FeatureIterator iterator = featureCollection.features();
+        ReferencedEnvelope env = DataUtilities.bounds(featureCollection);
+        iterator.close();
+        logger.info("计算范围" + env);
         return env;
+//        BCGISDataStore bcgisDataStore = getDataStore();
+//        SimpleFeatureSource bcgisFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
+//        SimpleFeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
+//        ReferencedEnvelope env = featureCollection.getBounds();
+//        return env;
 
     }
 
@@ -92,32 +90,29 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         // 两种方式  第一种：直接从属性数据中获取
         //          第二种：读取整体信息解析得到（暂时改为这一种)
 //        Geometry geometry = bcgisDataStore.getRecord();
-        String geometryType = bcgisDataStore.getGeotype().toLowerCase();
-        JSONObject jsonObject = bcgisDataStore.getPropertynName(0);
+        List<Object> list = bcgisDataStore.getPropertynName();
+        String geometryType = list.get(0).toString().toLowerCase();
+        JSONArray jsonArray = (JSONArray) list.get(1);
 
 //        if (geometry.getNumGeometries() < 1) {
-        if(geometryType == null){
-            builder.add("geom", LineString.class);
-        } else {
-//            String geometryType = geometry.getGeometryN(0).getGeometryType().toLowerCase();
-            if(geometryType.equals("multipoint")) {
-                builder.add("geom", MultiPoint.class);
-            }else if(geometryType.equals("point")) {
-                builder.add("geom", Point.class);
-            }else if(geometryType.equals("multilinestring")) {
-                builder.add("geom", MultiLineString.class);
-            }else if(geometryType.equals("linestring")){
-                builder.add("geom",LineString.class);
-            }else if (geometryType.contains("multipolygon")) {
-                builder.add("geom", MultiPolygon.class);
-            }else if(geometryType.contains("polygon")) {
-                builder.add("geom", Polygon.class);
-            }
+//            builder.add("geom", LineString.class);
+//        } else {
+        if(geometryType.equals("multipoint")) {
+            builder.add("geom", MultiPoint.class);
+        }else if(geometryType.equals("point")) {
+            builder.add("geom", Point.class);
+        }else if(geometryType.equals("multilinestring")) {
+            builder.add("geom", MultiLineString.class);
+        }else if(geometryType.equals("linestring")){
+            builder.add("geom",LineString.class);
+        }else if (geometryType.contains("multipolygon")) {
+            builder.add("geom", MultiPolygon.class);
+        }else if(geometryType.contains("polygon")) {
+            builder.add("geom", Polygon.class);
         }
-        logger.info("添加属性名称环节");
-        Set<String> keys =  jsonObject.keySet();
-        for(String key : keys){
-            builder.add(key, String.class);
+
+        for(int i = 0; i < jsonArray.size(); i++){
+            builder.add(jsonArray.get(i).toString(), String.class);
         }
         final SimpleFeatureType SCHEMA = builder.buildFeatureType();
         return SCHEMA;

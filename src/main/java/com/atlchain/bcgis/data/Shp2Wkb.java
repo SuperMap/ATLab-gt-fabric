@@ -139,9 +139,9 @@ public class Shp2Wkb {
                 }
                 jsonArray.add(jsonObject);
                 i++;
-                if(String.valueOf(i).equals("247")){
-                    System.out.println(i);
-                }
+//                if(String.valueOf(i).equals("247")){
+//                    System.out.println(i);
+//                }
             }
             featureIterator.close();
         } catch (IOException e) {

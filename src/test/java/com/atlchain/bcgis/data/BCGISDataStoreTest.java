@@ -32,10 +32,10 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
+    private String shpURL = this.getClass().getResource("/beijing/R.shp").getFile();
     // 点    /beijing/P.shp
     // 线    /BL/BL.shp       /beijing/R.shp
-    // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp   /chenduqu/chenduqu.shp
+    // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp
     private File shpFile = new File(shpURL);
     private String chaincodeName = "bcgiscc";
     //   D               6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
@@ -78,11 +78,6 @@ public class BCGISDataStoreTest {
 //        System.out.println("typename[0]: " + names[0]);
     }
 
-
-    /**
-     *
-     * @throws IOException
-     */
     @Test
     public void testGetGeometryDescriptor() throws IOException {
         SimpleFeatureType type = bcgisDataStore.getSchema(bcgisDataStore.getTypeNames()[0]);
@@ -328,5 +323,17 @@ public class BCGISDataStoreTest {
         json.put(key2, value2);
         Geometry geometry = bcgisDataStore.queryAttributesByProto(json);
         System.out.println(geometry.getNumGeometries());
+    }
+
+    @Test
+    public void testGetSinglePropFromChainCode(){
+        // 依靠hashID获取单个属性
+        JSONObject jsonObject = bcgisDataStore.getSinglePropFromChainCode(0);
+        System.out.println(jsonObject);
+        // 依靠hashID获取全部属性
+        JSONArray jsonArray = bcgisDataStore.getProperty();
+        for(Object o : jsonArray){
+            System.out.println(o);
+        }
     }
 }
