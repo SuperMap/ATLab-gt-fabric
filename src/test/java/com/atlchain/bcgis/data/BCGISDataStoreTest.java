@@ -3,6 +3,7 @@ package com.atlchain.bcgis.data;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.*;
+import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.data.store.ContentFeatureSource;
@@ -44,7 +45,7 @@ public class BCGISDataStoreTest {
     // Country_R.shp    8407bd3cd93d156e026b3cccba12035ef10b85b1ba1db31590296a153af7f3db
     // beijing/R.shp    278934ff40e23d4a054144b495df7ca5eb0f764aa02d44f0cf02b8921539d8b1
     private String functionName = "GetRecordByKey";
-    private String recordKey = "b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b";
+    private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
 
     private File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
    // TODO 存数据时 （recordKey = "null"）
@@ -65,6 +66,10 @@ public class BCGISDataStoreTest {
         System.out.println(featureSource.getSchema());
     }
 
+    /**
+     * 获取名称（完成）
+     * @throws IOException
+     */
     @Test
     public void testGetTypeNames() throws IOException {
         String[] names = bcgisDataStore.getTypeNames();
@@ -73,19 +78,27 @@ public class BCGISDataStoreTest {
 //        System.out.println("typename[0]: " + names[0]);
     }
 
+
+    /**
+     *
+     * @throws IOException
+     */
     @Test
     public void testGetGeometryDescriptor() throws IOException {
         SimpleFeatureType type = bcgisDataStore.getSchema(bcgisDataStore.getTypeNames()[0]);
+        int count = type.getAttributeCount(); // 根据BCGISFeatureSource/SimpleFeatureType返回SCHEMA得到属性
         GeometryDescriptor descriptor = type.getGeometryDescriptor();
         System.out.println(descriptor.getType());
     }
 
     @Test
     public void testGetBounds() throws IOException {
-        ContentFeatureSource bcgisFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
-        FeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
+        SimpleFeatureSource bcgisFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
+        SimpleFeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
         ReferencedEnvelope env = DataUtilities.bounds(featureCollection);
+        ReferencedEnvelope env1 = featureCollection.getBounds();
         System.out.println(env);
+        System.out.println(env1);
     }
 
     @Test
@@ -233,37 +246,6 @@ public class BCGISDataStoreTest {
 //        t1.close();
 //        t2.close();
         bcgisDataStore.dispose();
-    }
-
-    /**
-     * 以JFrame方式显示地图
-     */
-    public static void main(String[] args) throws IOException {
-        String LineKey = "5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301";
-        //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
-        //  中国地图       23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
-        //  成都区         5668c664c852b2b95543b784371f0267136cb4e09b8cb4a284148d2b9f578301
-        BCGISDataStore bcgisDataStore = new BCGISDataStore(
-                new File("\\E:\\DemoRecording\\A_SuperMap\\ATLab-gt-fabric\\src\\test\\resources\\network-config-test.yaml"),
-                new File("E:\\SuperMapData\\D\\D.shp"),
-                "bcgiscc",
-                "GetRecordByKey",
-                LineKey
-        );
-        SimpleFeatureSource simpleFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
-
-
-        simpleFeatureSource.getSchema();
-        String typeName = bcgisDataStore.getTypeNames()[0];
-        SimpleFeatureType type = bcgisDataStore.getSchema(typeName);
-
-        MapContent map = new MapContent();
-        map.setTitle("北京");
-        Style style = SLD.createSimpleStyle(type);
-
-        Layer layer = new FeatureLayer(simpleFeatureSource, style);
-        map.addLayer(layer);
-        JMapFrame.showMap(map);
     }
 
     /**

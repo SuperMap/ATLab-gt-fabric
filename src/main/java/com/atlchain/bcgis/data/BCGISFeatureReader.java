@@ -13,7 +13,9 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -35,6 +37,13 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 
     private int index = 0;
 
+    /**
+     * 属性的用处  在这里直接调用，然后解析即可，不用全部调用
+     * @param contentState
+     * @param query
+     */
+    // 属性的需要其实就这里（需要全部的属性，我觉得在这里直接读取即可，不用提前解析）
+    // 和 之前 FeatureSource里面（只需要有哪些属性即可）
     public BCGISFeatureReader(ContentState contentState, Query query) {
         this.state = contentState;
         BCGISDataStore bcgisDataStore = (BCGISDataStore)contentState.getEntry().getDataStore();
@@ -59,14 +68,16 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             next = null;
         }else{
             Geometry geom = geometry.getGeometryN(index);
-            int a = index;
-            JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(index).toString());
-            feature = getFeature(geom, jsonObject);
+//            JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(index).toString());
+//            feature = getFeature(geom, jsonObject);
+            JSONArray json = (JSONArray) jsonArray.get(index);
+            feature = getFeature(geom, json);
         }
         return feature;
     }
 
-    private SimpleFeature getFeature(Geometry geometry, JSONObject jsonObject) {
+    // TODO 想节流这里就只根据 ID 获取信息即可看行不行 （每次从区块链读取）
+    private SimpleFeature getFeature(Geometry geometry, JSONArray jsonArray) {
         if(geometry == null){
             return null;
         }
@@ -74,11 +85,22 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 //        builder.set("geom", geometry);
         builder.set("geom", geometryFactory.createGeometry(geometry));
 
-        Set<String> keys =  jsonObject.keySet();
-        for(String key : keys){
-            String value = jsonObject.get(key).toString();
+//        System.out.println(builder.getFeatureType().getTypes());
+        List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
+
+        // TODO 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一般的空间
+//        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
+
+        for(int k = 0; k < jsonArray.size(); k ++){
+            String key = list.get(k + 1).getLocalName();
+            String value = jsonArray.get(k).toString();
             builder.set(key, value);
         }
+//        Set<String> keys =  jsonObject.keySet();
+//        for(String key : keys){
+//            String value = jsonObject.get(key).toString();
+//            builder.set(key, value);
+//        }
         return builder.buildFeature(state.getEntry().getTypeName() + "." + index);
     }
 
@@ -87,10 +109,11 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         if (index < geometry.getNumGeometries()){
             return true;
         } else if (geometry == null){
+            jsonArray = null;
             return  false;
         } else {
-            JSONObject jsonObject = new JSONObject();
-            next = getFeature(geometry, jsonObject);
+            JSONArray jsonArray = new JSONArray();
+            next = getFeature(geometry, jsonArray);
             return false;
         }
     }

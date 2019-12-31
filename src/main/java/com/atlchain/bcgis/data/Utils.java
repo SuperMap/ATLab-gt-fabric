@@ -1,5 +1,9 @@
 package com.atlchain.bcgis.data;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import org.glassfish.json.JsonUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
@@ -13,6 +17,7 @@ import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -141,6 +146,13 @@ public class Utils {
         }
     }
 
+    /**
+     * 合并字节数组
+     * @param bt1
+     * @param bt2
+     * @param count
+     * @return
+     */
     public static byte[][] byteMerger(byte[][] bt1, byte[][] bt2, int count){
         byte[][] bt3 = null;
         if(count == 0){
@@ -153,6 +165,12 @@ public class Utils {
         return bt3;
     }
 
+    /**
+     * 将字节数组分割
+     * @param bytes
+     * @param size
+     * @return
+     */
     public static byte[] byteSpilt(byte[] bytes, int size){
         double splitLength = Double.parseDouble(size + "");
         int arrayLength = (int) Math.ceil(bytes.length / splitLength);
@@ -174,6 +192,70 @@ public class Utils {
         byte[] bytes = "tefdsfsdfsadfsdfst".getBytes();
         byte[] bytes1 = byteSpilt(bytes, 3);
         System.out.println(bytes.length == bytes1.length);
+    }
+
+    /**
+     * 将二维数组保存为本地文件
+     */
+    public static void saveByteToLocalFile(byte[][] results, String localFilePath, String fileName, String count){
+
+        BufferedOutputStream bos = null;
+        FileOutputStream fos = null;
+        File file = null;
+        for (byte[] resultByte : results) {
+            try {
+                File dir = new File(localFilePath);
+                if(!dir.exists() && !dir.isDirectory()){//判断文件目录是否存在
+                    dir.mkdirs();
+                }
+                file = new File(localFilePath + File.separator + fileName + count);
+                fos = new FileOutputStream(file);
+                bos = new BufferedOutputStream(fos);
+                bos.write(resultByte);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            bos.close();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 读取文件为 byte[]
+     * @param file
+     * @return
+     */
+    public static byte[] getFileBytes(String file) {
+        try {
+            File f = new File(file);
+            int length = (int) f.length();
+            byte[] data = new byte[length];
+            FileInputStream in = new FileInputStream(f);
+            in.read(data);
+            in.close();
+            return data;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    /**
+     * 将一维数组转为二维数组
+     * @param onedouble
+     * @return
+     */
+    public static byte[][] TwoArry(byte[] onedouble){
+        byte[][] arr = new byte[1][onedouble.length];
+        for (int i = 0; i < onedouble.length; i++) {
+            arr[0][i] = onedouble[i];
+        }
+        return arr;
     }
 
 

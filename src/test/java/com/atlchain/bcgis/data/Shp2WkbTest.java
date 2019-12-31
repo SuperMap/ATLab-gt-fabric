@@ -93,7 +93,7 @@ public class Shp2WkbTest {
      */
     @Test
     public void testQueryFromChain(){
-        String key = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885-0000175109";
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-0000175109";
         String value = client.getRecord(key,"bcgiscc");
         System.out.println(value);
         for(int i = 0; i < 99; i++){
@@ -125,16 +125,17 @@ public class Shp2WkbTest {
      */
     @Test
     public void testDeleteByKey(){
-        String key = "d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885-";
-        for(int i = 0; i < 10000; i++) {
-            String strIndex = String.format("%03d", i);
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
+        for(int i = 0; i < 100; i++) {
+            String strIndex = String.format("%04d", i);
+            System.out.println(strIndex);
             String recordKey = key  + strIndex;
             String result = client.deleteRecord(
                     recordKey,
                     "bcgiscc",
                     "DeleteRecordByKey"
             );
-            System.out.println(result + "====================》》》》》" + i);
+//            System.out.println(result + "====================》》》》》" + i);
         }
     }
 

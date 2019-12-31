@@ -1,20 +1,25 @@
 package com.atlchain.bcgis.data.index;
 
 import com.atlchain.bcgis.data.Shp2Wkb;
+import com.atlchain.bcgis.data.Utils;
 import org.junit.Test;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.index.strtree.STRtree;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 public class RTreeIndexTest {
-    String indexFilePath = "E:\\SuperMapData\\rtree.bin";
-    private String shpURL = this.getClass().getResource("/Pro/Province_R.shp").getFile();
+    String indexFilePath = "E:\\SuperMapData\\RtreeData";
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
+    // 点    /beijing/P.shp
+    // 线    /BL/BL.shp       /beijing/R.shp
+    // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp   /chenduqu/chenduqu.shp
     private File shpFile = new File(shpURL);
     private Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
     List<Geometry> geometryList = shp2WKB.getGeometry();
@@ -44,6 +49,10 @@ public class RTreeIndexTest {
     @Test
     public void saveSTRtree() {
         STRtree stRtree = rTreeIndex.createRtree(geometryList);
+        // 新增保存路径
+        String geometryStr = Utils.getGeometryStr((ArrayList<Geometry>) geometryList);
+        String hash = Utils.getSHA256(geometryStr);
+        indexFilePath = indexFilePath + File.separator + hash;
         rTreeIndex.saveSTRtree(stRtree, indexFilePath);
     }
 

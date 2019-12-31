@@ -89,20 +89,53 @@ public class BlockChainClient {
         byte[][] byteMerger = null;
         String startKey;
         String endKey;
+        String tmpFile = "E:\\SuperMapData\\BCGISDataStoreTmpFile";
+
         for(int i = 0; i < jsonArray.size() -1; i ++){
-            startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
-            endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
-            byte[][] result = atlChain.queryByte(
-                    chaincodeName,
-                    "GetRecordByKeyRange",
-                    new byte[][]{startKey.getBytes(), endKey.getBytes()}
-            );
+            // TODO 先判断本地有没有，有就直接用，没有就读取
+            File file = new File(tmpFile + File.separator + recordKey + String.valueOf(i));
+            byte[][] result =null;
+            byte[] temp = null;
+            if(file.exists()){
+                // TODO 从本地读取文件
+                temp = Utils.getFileBytes(String.valueOf(file));
+                result = Utils.TwoArry(temp);
+            } else {
+                startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
+                endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
+                result = atlChain.queryByte(
+                        chaincodeName,
+                        "GetRecordByKeyRange",
+                        new byte[][]{startKey.getBytes(), endKey.getBytes()}
+                );
+                // TODO 增加新方法 先存本地，然后读取
+                Utils.saveByteToLocalFile(result, tmpFile, recordKey, String.valueOf(i));
+            }
             byteMerger = byteMerger(byteMerger, result, i);
-            result = null;
         }
-        logger.info("读取数据成功");
         return byteMerger;
     }
+//    // TODO 2019.12.19根据提示的范围进行范围查询（startkey包含------endkey不包含）
+//    public byte[][] getRecordByRange(String recordKey, String chaincodeName, JSONArray jsonArray) {
+//
+//        int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
+//        byte[][] byteMerger = null;
+//        String startKey;
+//        String endKey;
+//        for(int i = 0; i < jsonArray.size() -1; i ++){
+//            startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
+//            endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
+//            byte[][] result = atlChain.queryByte(
+//                    chaincodeName,
+//                    "GetRecordByKeyRange",
+//                    new byte[][]{startKey.getBytes(), endKey.getBytes()}
+//            );
+//            byteMerger = byteMerger(byteMerger, result, i);
+//            result = null;
+//        }
+//        logger.info("读取数据成功");
+//        return byteMerger;
+//    }
 
     // 分页查询 返回的是一页的数据，组合在一起即可  一条一条查没有问题，前面包含，后面不包含
     public byte[][] getStateByRangeWithPagination(String recordKey, String chaincodeName, int pageSize, int allCount) {
@@ -116,7 +149,7 @@ public class BlockChainClient {
                     "GetRecordByKeyRange",
                     new byte[][]{startKey.getBytes(), endKey.getBytes()}
             );
-            byteMerger = byteMerger(byteMerger, result, i);
+//            byteMerger = byteMerger(byteMerger, result, i);
         }
         return byteMerger;
     }

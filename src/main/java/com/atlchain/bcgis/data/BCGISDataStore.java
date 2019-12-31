@@ -7,19 +7,29 @@ import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import com.google.common.io.Files;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
+import org.geotools.data.DataSourceException;
 import org.geotools.data.Query;
+import org.geotools.data.shapefile.shp.ShapeType;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.NameImpl;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollection;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.Name;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import javax.json.Json;
 import javax.json.JsonArray;
+import javax.json.JsonObject;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
@@ -34,7 +44,7 @@ public class BCGISDataStore extends ContentDataStore {
     private BlockChainClient client;
     private File shpFile;
     private int count;
-    private byte[][] results ;
+//    private byte[][] results ;
 
     public BCGISDataStore(
             File networkConfigFile,
@@ -50,7 +60,7 @@ public class BCGISDataStore extends ContentDataStore {
         this.shpFile = shpFile;
         if( !recordKey.equals("null") ){
             this.recordKey = recordKey; // 获取外界的  key 进行发布  先判断，假如有的话那就不再计算了
-            this.results = getDataFromChaincode();
+//            this.results = getDataFromChaincode();
         } else {
             try {
                 this.recordKey = putDataOnBlockchainByProto();
@@ -246,6 +256,11 @@ public class BCGISDataStore extends ContentDataStore {
         return key;
     }
 
+    /**
+     * 从区块链读取数据，现在的做法是，第一次读取出来就保存到本地，后面继续读取即可
+     * 第二次读取的时候直接先判断本地有没有数据，有的话直接返回数据即可
+     * @return
+     */
     public byte[][]  getDataFromChaincode(){
         String result = client.getRecord(
                 this.recordKey,
@@ -260,7 +275,7 @@ public class BCGISDataStore extends ContentDataStore {
         count = (int)jsonObject.get("count");
         JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
         // TODO 新的范围查询(自定义分页进行查询)
-        results = client.getRecordByRange(
+        byte[][] results = client.getRecordByRange(
                 this.recordKey,
                 this.chaincodeName,
                 jsonArray
@@ -347,10 +362,11 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public Geometry getRecord(){
+        // TODO 在解析为 几何对象和属性时可不可以直接转为先读取本地文件
 
         logger.info("开始空间几何信息解析");
         Geometry geometry = null;
-//        byte[][] results = getDataFromChaincode();
+        byte[][] results = getDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
         for (byte[] resultByte : results) {
             String resultStr = new String(resultByte);
@@ -372,22 +388,22 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-        // TODO 现在数据比较混乱，暂时不加这个
         if( count != geometryCollection.getNumGeometries()){
             return null;
         }
-        logger.info("getRecord is success");
         logger.info("完成几何信息解析，总共" + geometryCollection.getNumGeometries() + "条");
         return geometryCollection;
     }
 
     /**
+     * TODO 获取全部的属性值
+     * 现在的方式是先读取保存为文件，所以属性时直接读取文件即可
      * 获取属性
      * @return
      */
     public JSONArray getProperty(){
 
-//        byte[][] results = getDataFromChaincode();
+        byte[][] results = getDataFromChaincode();
         logger.info("开始属性解析");
         JSONObject jsonProp;
         JSONArray jsonArrayProp = new JSONArray();
@@ -396,11 +412,26 @@ public class BCGISDataStore extends ContentDataStore {
             JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
             for (Object obj : jsonArray){
                 JSONObject jsonObj = (JSONObject) obj;
-                String recordBase64 = (String)jsonObj.get("Record");
+                String recordBase64 = (String) jsonObj.get("Record");
                 byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                // TODO 只得到属性值有顺序即可
                 jsonProp = protoConvert.getPropFromProto(bytes);
-                jsonArrayProp.add(jsonProp);
+                // 获取属性字段
+                Set<String> keys = jsonProp.keySet();
+                JSONArray jsonArrayTmp = new JSONArray();
+                for (String key : keys) {
+                    String value = jsonProp.getString(key);
+                    if (value.length() == 0) {
+                        jsonArrayTmp.add("null");
+                    } else {
+                        jsonArrayTmp.add(value);
+                    }
+                }
+                jsonArrayProp.add(jsonArrayTmp);
+                jsonArrayTmp = null;
+                jsonProp = null;
             }
+//                jsonArrayProp.add(jsonProp);
         }
         if (jsonArrayProp == null) {
             try {
@@ -409,13 +440,54 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-        // TODO 现在数据比较混乱，暂时不加这个
         if( count != jsonArrayProp.size() ){
             return null;
         }
-        logger.info("getProperty is success");
-        logger.info("完成几何信息解析，总共" + jsonArrayProp.size() + "条");
+        logger.info("完成属性信息解析，总共" + jsonArrayProp.size()  + "条");
         return jsonArrayProp;
+    }
+
+    /**
+     * TODO 获取属性信息字段
+     * @param index
+     * @return
+     */
+    public JSONObject getPropertynName(int index){
+        logger.info("获取属性信息字段");
+        String tmpFile = "E:\\SuperMapData\\BCGISDataStoreTmpFile";
+        File file = new File(tmpFile + File.separator + this.recordKey + String.valueOf(index));
+        byte[] temp = Utils.getFileBytes(String.valueOf(file));
+        byte[][] results = Utils.TwoArry(temp);
+        JSONObject jsonProp = new JSONObject();
+        for (byte[] resultByte : results) {
+            String resultStr = new String(resultByte);
+            JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
+            for (Object obj : jsonArray){
+                JSONObject jsonObj = (JSONObject) obj;
+                String recordBase64 = (String)jsonObj.get("Record");
+                byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                jsonProp = protoConvert.getPropFromProto(bytes);
+                break;
+            }
+        }
+        logger.info("属性字段获取完毕");
+        return jsonProp;
+    }
+
+    public String getGeotype(){
+
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        // 读取时数据的个数匹配
+        String geotype = jsonObject.get("geotype").toString();
+        return geotype;
     }
 
     /**
@@ -505,13 +577,21 @@ public class BCGISDataStore extends ContentDataStore {
     protected List<Name> createTypeNames() {
 
 //        String tempname = "tempfeaturesType" ;
-        Name name = new NameImpl(namespaceURI, this.recordKey);
-        return Collections.singletonList(name);
+//        Name name = new NameImpl(namespaceURI, this.recordKey);
+//        return Collections.singletonList(name);
+
+        // new add
+        return Collections.singletonList(getTypeName());
+    }
+
+    Name getTypeName() {
+        return new NameImpl(namespaceURI, this.recordKey);
     }
 
     @Override
     public ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
-
+        // new add
+        entry = ensureEntry(getTypeName());
         return new BCGISFeatureStore(entry, Query.ALL);
     }
 }
