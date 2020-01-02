@@ -331,7 +331,7 @@ public class BCGISDataStore extends ContentDataStore {
                 this.chaincodeName,
                 jsonArray
         );
-        logger.info("getDataFromChaincode is success");
+        logger.info("getGeometryDataFromChaincode is success");
         return geometryResults;
     }
 
@@ -356,6 +356,7 @@ public class BCGISDataStore extends ContentDataStore {
                 this.chaincodeName,
                 jsonArray
         );
+        logger.info("getPropDataFromChaincode is success");
         return propResults;
     }
 
@@ -386,27 +387,37 @@ public class BCGISDataStore extends ContentDataStore {
 
     /**
      * 获取空间几何数据
+     * // TODO 传递一个参数，比如每次只解析 10000 条   可以按照分页读取的方法实现，就是每次只实现一部分，
+     * // 因为数据和属性都是分页读取的，所以可以保持一致得到属性和数据时对应的
      * @return
      */
-    public Geometry getRecord(){
-        logger.info("开始空间几何信息解析");
-        Geometry geometry = null;
+    public Geometry getRecord(int page){
+//        logger.info("开始空间几何信息解析");
+        Geometry geometryTmp = null;
 //        byte[][] geometryResults = getGeometryDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        // 做一个判断 到底是那一页
+        int pageCount = 0;
         for (byte[] resultByte : geometryResults) {
-            String resultStr = new String(resultByte);
-            JSONArray jsonArray = (JSONArray)JSON.parse(resultStr);
-            for (Object obj : jsonArray){
-                JSONObject jsonObj = (JSONObject) obj;
-                String recordBase64 = (String)jsonObj.get("Record");
-                byte[] bytes = Base64.getDecoder().decode(recordBase64);
-                try {
-                    geometry = new WKBReader().read(bytes);
-                } catch (ParseException e) {
-                    e.printStackTrace();
+            // TODO 确定好是那一页才进去解析
+            if(page == pageCount) {
+                String resultStr = new String(resultByte);
+                JSONArray jsonArray = (JSONArray) JSON.parse(resultStr);
+                for (Object obj : jsonArray) {
+                    JSONObject jsonObj = (JSONObject) obj;
+                    String recordBase64 = (String) jsonObj.get("Record");
+                    byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                    try {
+                        geometryTmp = new WKBReader().read(bytes);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    geometryArrayList.add(geometryTmp);
+                    geometryTmp = null;
                 }
-                geometryArrayList.add(geometry);
+                break;
             }
+            pageCount++;
         }
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
@@ -420,7 +431,7 @@ public class BCGISDataStore extends ContentDataStore {
 //        if( count != geometryCollection.getNumGeometries()){
 //            return null;
 //        }
-        logger.info("完成空间几何信息解析");
+//        logger.info("完成空间几何信息解析");
         return geometryCollection;
     }
 
@@ -463,39 +474,49 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 整体属性
+     * 整体属性查询
+     * TODO 现在属性全部解析出来会出问题，那么我可以先把数据读取出来，每次只解析部分数据即可
      * @return
      */
-    public JSONArray getProperty(){
+    public JSONArray getProperty(int page){
 
-        logger.info("开始属性查询");
+//        logger.info("开始属性查询");
 //        byte[][] propResults = getPropDataFromChaincode();
         JSONArray jsonArrayProp = new JSONArray();
+        // 做一个判断 到底是那一页
+        int pageCount = 0;
         for (byte[] resultByte : propResults) {
-            String resultStr = new String(resultByte);
-            JSONArray jonArray = (JSONArray)JSON.parse(resultStr);
-            for (Object obj : jonArray){
-                JSONObject jsonObj = (JSONObject) obj;
-                String recordBase64 = (String)jsonObj.get("Record");
-                byte[] bytes = Base64.getDecoder().decode(recordBase64);
-                String tmpString = new String(bytes);
-                JSONObject json = JSONObject.parseObject(tmpString);
-                json.remove("hash");
-                // 为节省空间，这里只将值传输给那边解析即可，键有顺序就行
-                Set<String> keys = json.keySet();
-                JSONArray jsonArrayTmp = new JSONArray();
-                for (String propKey : keys) {
-                    String value = json.getString(propKey);
-                    if (value.length() == 0) {
-                        jsonArrayTmp.add("null");
-                    } else {
-                        jsonArrayTmp.add(value);
+            if(pageCount == page) {
+                String resultStr = new String(resultByte);
+                JSONArray jonArray = (JSONArray) JSON.parse(resultStr);
+                // TODO 添加索引快速定位需要的属性，然后添加进去，最好方法是结合数据一起传输过去
+                //
+                for (Object obj : jonArray) {
+                    JSONObject jsonObj = (JSONObject) obj;
+                    String recordBase64 = (String) jsonObj.get("Record");
+                    byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                    String tmpString = new String(bytes);
+                    JSONObject json = JSONObject.parseObject(tmpString);
+                    json.remove("hash");
+                    // 为节省空间，这里只将值传输给那边解析即可，键有顺序就行
+                    Set<String> keys = json.keySet();
+                    JSONArray jsonArrayTmp = new JSONArray();
+                    for (String propKey : keys) {
+                        String value = json.getString(propKey);
+                        if (value.length() == 0) {
+                            jsonArrayTmp.add("null");
+                        } else {
+                            jsonArrayTmp.add(value);
+                        }
                     }
+                    jsonArrayProp.add(jsonArrayTmp);
+                    jsonArrayTmp = null;
                 }
-                jsonArrayProp.add(jsonArrayTmp);
+                break;
             }
+            pageCount++;
         }
-        logger.info("属性解析完毕");
+//        logger.info("属性解析完毕");
         return jsonArrayProp;
     }
 
@@ -553,7 +574,7 @@ public class BCGISDataStore extends ContentDataStore {
 
 
     /**
-     * TODO 获取属性信息字段 和整体类型
+     * 获取属性信息字段 和整体类型
      * @return
      */
     public List<Object> getPropertynName(){
@@ -574,13 +595,33 @@ public class BCGISDataStore extends ContentDataStore {
         return list;
     }
 
+    // 获取存储的数据有多少个 和 分页情况
+    public List<Object> getCount(){
+        String result = client.getRecord(
+                this.recordKey,
+                this.chaincodeName,
+                this.functionName
+        );
+        if(result.length() == 0){
+            logger.info("please input correct recordKey");
+        }
+        JSONObject jsonObject = (JSONObject)JSON.parse(result);
+        int totalCount = (int)jsonObject.get("count");
+        JSONArray jsonArrayReadRange = JSONArray.parseArray(jsonObject.get("readRange").toString());
+        List<Object> list = new LinkedList<>();
+        list.add(totalCount);
+        list.add(jsonArrayReadRange);
+
+        return list;
+    }
+
     /**
      * TODO 富查询做属性查询
      * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
      * @param stringList
      * @return
      */
-    public Geometry getRecordByAttributes(List<String> stringList){
+    public Geometry queryAttributes(List<String> stringList){
         String attributesHash = client.getRecord(
                 stringList,
                 "bcgiscc",
@@ -626,8 +667,8 @@ public class BCGISDataStore extends ContentDataStore {
      */
     public Geometry queryAttributesByProto(JSONObject jsonObject) {
 
-        JSONArray jsonArrayProp = getProperty();
-        Geometry geometry = getRecord();
+        JSONArray jsonArrayProp = getProperty(0);
+        Geometry geometry = getRecord(0);
         Geometry geo;
         JSONObject json;
         Set<String> keys = jsonObject.keySet();

@@ -293,7 +293,7 @@ public class BCGISDataStoreTest {
         //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8     属性 省市行政区名
         stringList.add(key);
         stringList.add(hash);
-        Geometry geometry = bcgisDataStore.getRecordByAttributes(stringList);
+        Geometry geometry = bcgisDataStore.queryAttributes(stringList);
         System.out.println(geometry);
         System.out.println(geometry.getNumGeometries());
     }
@@ -331,7 +331,7 @@ public class BCGISDataStoreTest {
         JSONObject jsonObject = bcgisDataStore.getSinglePropFromChainCode(0);
         System.out.println(jsonObject);
         // 依靠hashID获取全部属性
-        JSONArray jsonArray = bcgisDataStore.getProperty();
+        JSONArray jsonArray = bcgisDataStore.getProperty(0);
         for(Object o : jsonArray){
             System.out.println(o);
         }

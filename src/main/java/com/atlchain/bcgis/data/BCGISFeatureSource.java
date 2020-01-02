@@ -45,8 +45,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
 
-//        FeatureCollection featureCollection = getFeatures();
-//        FeatureIterator iterator = featureCollection.features();
         SimpleFeatureSource bcgisFeatureSource = getDataStore().getFeatureSource(getDataStore().getTypeNames()[0]);
         SimpleFeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
         FeatureIterator iterator = featureCollection.features();
@@ -65,8 +63,9 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected int getCountInternal(Query query) {
         if(query.getFilter() == Filter.INCLUDE){
-            Geometry geometry = getDataStore().getRecord();
-            int count = geometry.getNumGeometries();
+//            Geometry geometry = getDataStore().getRecord();
+//            int count = geometry.getNumGeometries();
+            int count = (int)getDataStore().getCount().get(0);
             return count;
         }
         return -1;
@@ -121,7 +120,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected boolean handleVisitor(Query query, FeatureVisitor visitor) throws IOException{
         return super.handleVisitor(query,visitor);
-        // WARNING: Please note this method is in BCGISeatureSource!
     }
 }
 
