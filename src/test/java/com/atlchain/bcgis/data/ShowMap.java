@@ -27,8 +27,8 @@ public class ShowMap {
         // Country_R        8407bd3cd93d156e026b3cccba12035ef10b85b1ba1db31590296a153af7f3db          (OK)
         // beijing/R       278934ff40e23d4a054144b495df7ca5eb0f764aa02d44f0cf02b8921539d8b1
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
-                new File(BCGISDataStoreTest.class.getResource("/network-config-test.yaml").getPath()),
-                new File("E:\\SuperMapData\\D\\D.shp"),
+                new File(BCGISDataStoreTest.class.getResource("/network-config-testA.yaml").getPath()),
+                new File(BCGISDataStoreTest.class.getResource("/D/D.shp").getPath()),
                 "bcgiscc",
                 "GetRecordByKey",
                 Key
