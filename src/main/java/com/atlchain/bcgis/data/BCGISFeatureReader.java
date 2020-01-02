@@ -34,40 +34,28 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     private JSONArray jsonArrayReadRange;
     private int index = 0;
     private BCGISDataStore bcgisDataStore;
-
     // 记录分页用
     private int page = 0;
     // 得到每一组 geometry 的序号
     private int tmpCount = 0;
 
     /**
-     * 属性的用处  在这里直接调用，然后解析即可，不用全部调用
+     * 分页解析空间数据和属性（考虑内存占用的问题）
      * @param contentState
      * @param query
      */
-    // 属性的需要其实就这里（需要全部的属性，我觉得在这里直接读取即可，不用提前解析）
-    // 和 之前 FeatureSource里面（只需要有哪些属性即可）
     public BCGISFeatureReader(ContentState contentState, Query query) {
-        logger.info("====================================================================");
         this.state = contentState;
+        builder = new SimpleFeatureBuilder(state.getFeatureType());
         bcgisDataStore = (BCGISDataStore)contentState.getEntry().getDataStore();
-//        geometry = bcgisDataStore.getRecord();
-//        jsonArray = bcgisDataStore.getProperty();
-        // TODO 数据的获取应根据应分页加载
         totalCount = (int)bcgisDataStore.getCount().get(0);
         jsonArrayReadRange = JSONArray.parseArray(bcgisDataStore.getCount().get(1).toString());
-        // 做一个判断 如何获取新值
-        // 小于 说明这一页还没读完 就继续用
-        if(index < (int)jsonArrayReadRange.get(page)){
-//            geometry = bcgisDataStore.getRecord(page);
-//            jsonArray = bcgisDataStore.getProperty(page);
-        } else {
-            // 重新开启新的一页
+        // 做一个判断 如何获取新值 大于等于小于 说明这一页读完，需解析下一页
+        if(index >= (int)jsonArrayReadRange.get(page)){
             geometry = bcgisDataStore.getRecord(page);
             jsonArray = bcgisDataStore.getProperty(page);
             tmpCount = 0;
         }
-        builder = new SimpleFeatureBuilder(state.getFeatureType());
         geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
     }
 
@@ -84,17 +72,13 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             feature = next;
             next = null;
         }else{
-            // TODO 根据索引来读取数据 ，将bcgisDataStore 作为全局变量
-            // 当  tmpCount 超过一页的时候就需要重新读取数据了  怎么触发这个条件
+            // 当  tmpCount 超过一页的时候就需要重新读取数据了
             if(tmpCount < geometry.getNumGeometries()){
-                //            Geometry geom = geometry.getGeometryN(index);
                 Geometry geom = geometry.getGeometryN(tmpCount);
-//            JSONObject json = (JSONObject) jsonArray.get(index);
-//            JSONArray json = (JSONArray) jsonArray.get(index);
                 JSONArray json = (JSONArray)jsonArray.get(tmpCount);
                 feature = getFeature(geom, json);
             } else {
-                // 需要新的 数据和属性
+                // 新的一页，需要新的 数据和属性
                 page = page + 1;
                 tmpCount = 0;
                 geometry = null;
@@ -110,7 +94,6 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         return feature;
     }
 
-    // TODO 想节流这里就只根据 ID 获取信息即可看行不行 （每次从区块链读取）
     private SimpleFeature getFeature(Geometry geometry, JSONArray json) {
         if(geometry == null){
             return null;
@@ -119,13 +102,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         tmpCount ++;
 //        builder.set("geom", geometry);
         builder.set("geom", geometryFactory.createGeometry(geometry));
-
-//        Set<String> keys =  jsonObject.keySet();
-//        for(String key : keys){
-//            String value = jsonObject.get(key).toString();
-//            builder.set(key, value);
-//        }
-        // TODO 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一半空间
+        // 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一半空间
         List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
 //        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
         for(int k = 0; k < json.size(); k ++){
@@ -138,7 +115,6 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 
     @Override
     public boolean hasNext() {
-//        if (index < geometry.getNumGeometries()){
         if(index < totalCount){
             return true;
         } else if (geometry == null){

@@ -33,9 +33,9 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
     private ArrayList<Geometry> geometryArrayList = new ArrayList<>();
 
     public BCGISFeatureWriter(ContentState state, Query query) {
+        logger.info("writer");
         this.state = state;
         this.delegate = new BCGISFeatureReader(state, query);
-//        File file = (BCGISDataStore)state.getEntry().getDataStore()
     }
 
     @Override
@@ -70,10 +70,10 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
             // defaultValues(SimpleFeatureType featureType) Produce a set of default values for the provided FeatureType
             Object values[] = DataUtilities.defaultValues(featureType);
 
-            this.currentFeature = SimpleFeatureBuilder.build(featureType,values,fid);
+            this.currentFeature = SimpleFeatureBuilder.build(featureType, values,fid);
             return  this.currentFeature;
         }catch (IllegalAttributeException invalid){
-            throw new IOException("Unable to create feature :" + invalid.getMessage(),invalid);
+            throw new IOException("Unable to create feature :" + invalid.getMessage(), invalid);
         }
     }
 
@@ -106,23 +106,14 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
         if (geometryArrayList != null) {
             this.write();
         }
-
         while (hasNext()) {
             next();
             write();
         }
-
         if(delegate != null){
             this.delegate.close();
             this.delegate = null;
         }
-
-        logger.info("====================>write to the BlockChain");
-
-        // TODO 假如是 shp 文件，将其写入到区块链
-//        BCGISDataStore bcgisDataStore = (BCGISDataStore)state.getEntry().getDataStore();
-//        bcgisDataStore.putDataOnBlockchainByProto();
-
     }
 }
 

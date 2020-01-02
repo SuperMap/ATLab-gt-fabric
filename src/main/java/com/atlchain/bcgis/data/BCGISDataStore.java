@@ -43,7 +43,6 @@ public class BCGISDataStore extends ContentDataStore {
     private String recordKey;
     private BlockChainClient client;
     private File shpFile;
-    private int count;
     private byte[][] geometryResults ;
     private byte[][] propResults ;
 
@@ -103,7 +102,7 @@ public class BCGISDataStore extends ContentDataStore {
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
 
-        // TODO 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
+        // 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
         String result1 = client.getRecord(
                 key,
                 this.chaincodeName,
@@ -116,8 +115,7 @@ public class BCGISDataStore extends ContentDataStore {
                 return key;
             }
         } else {
-
-            // TODO 存放单条空间几何记录 自定义范围查询（一组范围最多800条或累计超800KB），范围存储在 JSONArray
+            // 存放单条空间几何记录 自定义范围查询（一组范围最多800条或累计超800KB），范围存储在 JSONArray
             JSONArray jsonArray = new JSONArray();
             jsonArray.add(0);
             int tmpCount = 0;                 // 用来计数最大为 900
@@ -157,7 +155,7 @@ public class BCGISDataStore extends ContentDataStore {
             }
             logger.info("空间几何信息存储完毕，单条数据最大值为" + max + "KB");
 
-            // TODO 存储单条geometry属性信息 (后期将其修改到数据一起存)
+            // 存储单条geometry属性信息
             for(int i = 0; i < geometryProperty.size(); i++ ) {
                 String propKey = "prop" + key + "-" + String.format("%0" + tempRang + "d", i);
                 String contactKey = key + "-" + String.format("%0" + tempRang + "d", i);
@@ -176,7 +174,7 @@ public class BCGISDataStore extends ContentDataStore {
             }
             logger.info("属性信息存储完毕");
 
-            // TODO 将该对象拥有的属性字段也存储进去
+            // 将该对象拥有的属性字段也存储到整体信息
             JSONArray geoProperty = shp2WKB.getShpFileAttributes();
             JSONObject jsonProp = (JSONObject)geoProperty.get(0);
             Set<String> keys =  jsonProp.keySet();
@@ -186,7 +184,7 @@ public class BCGISDataStore extends ContentDataStore {
             }
             argsJson.put("prop", Prop);
             argsJson.put("rang", tempRang);
-            // TODO 存储整体信息
+            // 存储整体信息
             jsonArray.add(rang);
             argsJson.put("readRange", jsonArray);
             String args = argsJson.toJSONString();
@@ -309,8 +307,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 从区块链读取数据，现在的做法是，第一次读取出来就保存到本地，后面继续读取即可
-     * 第二次读取的时候直接先判断本地有没有数据，有的话直接返回数据即可
+     * 空间数据查询
      * @return
      */
     public byte[][]  getGeometryDataFromChaincode(){
@@ -323,9 +320,8 @@ public class BCGISDataStore extends ContentDataStore {
             logger.info("please input correct recordKey");
         }
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
-        // 读取时数据的个数匹配
         JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
-        // TODO 新的范围查询(自定义分页进行查询)
+        // 新的范围查询(自定义分页进行查询)
         geometryResults = client.getRecordByRange(
                 this.recordKey,
                 this.chaincodeName,
@@ -336,7 +332,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 属性查询结果
+     * 属性查询
      * @return
      */
     public byte[][]  getPropDataFromChaincode(){
@@ -386,20 +382,17 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 获取空间几何数据
-     * // TODO 传递一个参数，比如每次只解析 10000 条   可以按照分页读取的方法实现，就是每次只实现一部分，
-     * // 因为数据和属性都是分页读取的，所以可以保持一致得到属性和数据时对应的
+     * 获取空间几何数据(分页读取机制)
+     * 因为数据和属性都是采用相同的分页读取，所以可以保持一致得到属性和数据时对应的
      * @return
      */
     public Geometry getRecord(int page){
-//        logger.info("开始空间几何信息解析");
         Geometry geometryTmp = null;
 //        byte[][] geometryResults = getGeometryDataFromChaincode();
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
-        // 做一个判断 到底是那一页
         int pageCount = 0;
         for (byte[] resultByte : geometryResults) {
-            // TODO 确定好是那一页才进去解析
+            // 确定好是那一页才进去解析 解析完毕直接退出，不在循环
             if(page == pageCount) {
                 String resultStr = new String(resultByte);
                 JSONArray jsonArray = (JSONArray) JSON.parse(resultStr);
@@ -428,9 +421,6 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-//        if( count != geometryCollection.getNumGeometries()){
-//            return null;
-//        }
 //        logger.info("完成空间几何信息解析");
         return geometryCollection;
     }
@@ -440,8 +430,6 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public Geometry getRecordByProto(){
-        // TODO 在解析为 几何对象和属性时可不可以直接转为先读取本地文件
-
         logger.info("开始空间几何信息解析");
         Geometry geometry = null;
         byte[][] results = getGeometryDataFromChaincode();
@@ -466,31 +454,23 @@ public class BCGISDataStore extends ContentDataStore {
                 e.printStackTrace();
             }
         }
-        if( count != geometryCollection.getNumGeometries()){
-            return null;
-        }
         logger.info("完成几何信息解析，总共" + geometryCollection.getNumGeometries() + "条");
         return geometryCollection;
     }
 
     /**
-     * 整体属性查询
-     * TODO 现在属性全部解析出来会出问题，那么我可以先把数据读取出来，每次只解析部分数据即可
+     * 整体属性查询（分页解析数据）
      * @return
      */
     public JSONArray getProperty(int page){
-
 //        logger.info("开始属性查询");
-//        byte[][] propResults = getPropDataFromChaincode();
         JSONArray jsonArrayProp = new JSONArray();
-        // 做一个判断 到底是那一页
         int pageCount = 0;
         for (byte[] resultByte : propResults) {
+            // 做判断 分页解析数据
             if(pageCount == page) {
                 String resultStr = new String(resultByte);
                 JSONArray jonArray = (JSONArray) JSON.parse(resultStr);
-                // TODO 添加索引快速定位需要的属性，然后添加进去，最好方法是结合数据一起传输过去
-                //
                 for (Object obj : jonArray) {
                     JSONObject jsonObj = (JSONObject) obj;
                     String recordBase64 = (String) jsonObj.get("Record");
@@ -498,7 +478,7 @@ public class BCGISDataStore extends ContentDataStore {
                     String tmpString = new String(bytes);
                     JSONObject json = JSONObject.parseObject(tmpString);
                     json.remove("hash");
-                    // 为节省空间，这里只将值传输给那边解析即可，键有顺序就行
+                    // 为节省空间，只将值传输给那边解析即可，键有顺序就行
                     Set<String> keys = json.keySet();
                     JSONArray jsonArrayTmp = new JSONArray();
                     for (String propKey : keys) {
@@ -539,7 +519,7 @@ public class BCGISDataStore extends ContentDataStore {
                 JSONObject jsonObj = (JSONObject) obj;
                 String recordBase64 = (String) jsonObj.get("Record");
                 byte[] bytes = Base64.getDecoder().decode(recordBase64);
-                // TODO 只得到属性值有顺序即可
+                // 只得到属性值有顺序即可
                 jsonProp = protoConvert.getPropFromProto(bytes);
                 // 获取属性字段
                 Set<String> keys = jsonProp.keySet();
@@ -556,7 +536,6 @@ public class BCGISDataStore extends ContentDataStore {
                 jsonArrayTmp = null;
                 jsonProp = null;
             }
-//                jsonArrayProp.add(jsonProp);
         }
         if (jsonArrayProp == null) {
             try {
@@ -564,9 +543,6 @@ public class BCGISDataStore extends ContentDataStore {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        if( count != jsonArrayProp.size() ){
-            return null;
         }
         logger.info("完成属性信息解析，总共" + jsonArrayProp.size()  + "条");
         return jsonArrayProp;
@@ -616,7 +592,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * TODO 富查询做属性查询
+     * TODO 富查询做属性查询（后续再改）
      * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
      * @param stringList
      * @return
@@ -661,7 +637,7 @@ public class BCGISDataStore extends ContentDataStore {
 
     /**
      * 解析得到geometry和proto，然后根据查询条件解析属性得到对应的geometry
-     * TODO 这只是一个方法，后期需要的话再把 key 加进来就可以了 （因为这是基于proto格式的属性查询，现在有富查询之后，可能不在使用）
+     * 基于proto格式的属性查询，现在有富查询之后，可能不在使用
      * @param jsonObject
      * @return
      */
@@ -701,22 +677,12 @@ public class BCGISDataStore extends ContentDataStore {
      */
     @Override
     protected List<Name> createTypeNames() {
-
-//        String tempname = "tempfeaturesType" ;
-//        Name name = new NameImpl(namespaceURI, this.recordKey);
-//        return Collections.singletonList(name);
-        // new add
-        return Collections.singletonList(getTypeName());
-    }
-
-    Name getTypeName() {
-        return new NameImpl(namespaceURI, this.recordKey);
+        Name name = new NameImpl(namespaceURI, this.recordKey);
+        return Collections.singletonList(name);
     }
 
     @Override
     public ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
-        // new add
-        entry = ensureEntry(getTypeName());
         return new BCGISFeatureStore(entry, Query.ALL);
     }
 }

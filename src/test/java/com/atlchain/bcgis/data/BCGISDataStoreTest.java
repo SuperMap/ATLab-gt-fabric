@@ -48,7 +48,7 @@ public class BCGISDataStoreTest {
     private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
 
     private File networkFile = new File(this.getClass().getResource("/network-config-test.yaml").getPath());
-   // TODO 存数据时 （recordKey = "null"）
+   // 存数据时 （recordKey = "null"）
     private BCGISDataStore bcgisDataStore = new BCGISDataStore(
             networkFile,
             shpFile,

@@ -41,7 +41,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         return (BCGISDataStore) super.getDataStore();
     }
 
-    // TODO 这里的范围计算会计算两次读数据  写数据  看如何改进
+    // TODO 该处范围计算会计算两次，看如何改进
     @Override
     protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
 
@@ -50,21 +50,13 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         FeatureIterator iterator = featureCollection.features();
         ReferencedEnvelope env = DataUtilities.bounds(featureCollection);
         iterator.close();
-        logger.info("计算范围" + env);
+        logger.info("计算范围为：" + env);
         return env;
-//        BCGISDataStore bcgisDataStore = getDataStore();
-//        SimpleFeatureSource bcgisFeatureSource = bcgisDataStore.getFeatureSource(bcgisDataStore.getTypeNames()[0]);
-//        SimpleFeatureCollection featureCollection = bcgisFeatureSource.getFeatures();
-//        ReferencedEnvelope env = featureCollection.getBounds();
-//        return env;
-
     }
 
     @Override
     protected int getCountInternal(Query query) {
         if(query.getFilter() == Filter.INCLUDE){
-//            Geometry geometry = getDataStore().getRecord();
-//            int count = geometry.getNumGeometries();
             int count = (int)getDataStore().getCount().get(0);
             return count;
         }
@@ -85,17 +77,10 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         builder.setName(entry.getName());
         builder.setCRS(DefaultGeographicCRS.WGS84);
         BCGISDataStore bcgisDataStore = getDataStore();
-        // TODO 下面计算的 geometry 的目的只是为了获取 geom 完全用不着将数据全部读取一次，需要修改
-        // 两种方式  第一种：直接从属性数据中获取
-        //          第二种：读取整体信息解析得到（暂时改为这一种)
-//        Geometry geometry = bcgisDataStore.getRecord();
         List<Object> list = bcgisDataStore.getPropertynName();
         String geometryType = list.get(0).toString().toLowerCase();
         JSONArray jsonArray = (JSONArray) list.get(1);
 
-//        if (geometry.getNumGeometries() < 1) {
-//            builder.add("geom", LineString.class);
-//        } else {
         if(geometryType.equals("multipoint")) {
             builder.add("geom", MultiPoint.class);
         }else if(geometryType.equals("point")) {
