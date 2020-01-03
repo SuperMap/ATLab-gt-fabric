@@ -83,6 +83,26 @@ public class BlockChainClient {
     }
 
     // 2019.12.19根据提示的范围进行范围查询geometry（startkey包含------endkey不包含）
+    public byte[][] getRecordByRangeByte(String recordKey, String chaincodeName, JSONArray jsonArray) {
+        int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
+        byte[][] byteMerger = null;
+        List<byte[][]> list = null;
+        String startKey;
+        String endKey;
+        for(int i = 0; i < jsonArray.size() -1; i ++){
+            startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
+            endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
+            byte[][] result = atlChain.queryByte(
+                    chaincodeName,
+                    "GetRecordByKeyRangeByte",
+                    new byte[][]{startKey.getBytes(), endKey.getBytes()}
+            );
+            byteMerger = byteMerger(byteMerger, result, i);
+            result = null;
+        }
+        return byteMerger;
+    }
+
     public byte[][] getRecordByRange(String recordKey, String chaincodeName, JSONArray jsonArray) {
 
         int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;

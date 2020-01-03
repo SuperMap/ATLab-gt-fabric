@@ -110,7 +110,7 @@ public class BCGISDataStore extends ContentDataStore {
                 this.functionName
         );
         // TODO 后面需要改为不等于
-        if(result1.length() == 0){
+        if(result1.length() != 0){
             JSONObject jsonObject = (JSONObject)JSON.parse(result1);
             String hash1 = (String) jsonObject.get("hash");
             if(hash1.equals(key)) {
@@ -325,7 +325,7 @@ public class BCGISDataStore extends ContentDataStore {
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
         JSONArray jsonArray = JSONArray.parseArray(jsonObject.get("readRange").toString());
         // 新的范围查询(自定义分页进行查询)
-        geometryResults = client.getRecordByRange(
+        geometryResults = client.getRecordByRangeByte(
                 this.recordKey,
                 this.chaincodeName,
                 jsonArray
@@ -384,11 +384,9 @@ public class BCGISDataStore extends ContentDataStore {
                 // 确定好是那一页才进去解析 解析完毕直接退出，不在循环
                 if (page == pageCount) {
                     String resultStr = new String(resultByte);
-                    JSONArray jsonArray = (JSONArray) JSON.parse(resultStr);
-                    for (Object obj : jsonArray) {
-                        JSONObject jsonObj = (JSONObject) obj;
-                        String recordBase64 = (String) jsonObj.get("Record");
-                        byte[] bytes = Base64.getDecoder().decode(recordBase64);
+                    String[] strings = resultStr.split(",");
+                    for (String str : strings) {
+                        byte[] bytes = Base64.getDecoder().decode(str);
                         try {
                             geometryTmp = new WKBReader().read(bytes);
                         } catch (ParseException e) {
@@ -403,13 +401,6 @@ public class BCGISDataStore extends ContentDataStore {
             }
             Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
             geometryCollection = Utils.getGeometryCollection(geometries);
-            if (geometryArrayList == null) {
-                try {
-                    throw new IOException("Blockchain record is not available");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
             globalVars.geometryList.add(geometryCollection);
         } else {
             geometryCollection = (GeometryCollection) globalVars.geometryList.get(page);
@@ -470,14 +461,11 @@ public class BCGISDataStore extends ContentDataStore {
             for (byte[] resultByte : propResults) {
                 // 做判断 分页解析数据
                 if (pageCount == page) {
-                    String resultStr = new String(resultByte);
-                    JSONArray jonArray = (JSONArray) JSON.parse(resultStr);
-                    for (Object obj : jonArray) {
-                        JSONObject jsonObj = (JSONObject) obj;
-                        String recordBase64 = (String) jsonObj.get("Record");
-                        byte[] bytes = Base64.getDecoder().decode(recordBase64);
-                        String tmpString = new String(bytes);
-                        JSONObject json = JSONObject.parseObject(tmpString);
+                    String resultStr = "[" + new String(resultByte) + "]"; // 构造json
+                    JSONArray jsonArray = JSONArray.parseArray(resultStr);
+
+                    for (Object obj : jsonArray) {
+                        JSONObject json = (JSONObject) obj;
                         json.remove("hash");
                         // 为节省空间，只将值传输给那边解析即可，键有顺序就行
                         Set<String> keys = json.keySet();
