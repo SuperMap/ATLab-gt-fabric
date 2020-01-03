@@ -45,8 +45,9 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
      * @param query
      */
     public BCGISFeatureReader(ContentState contentState, Query query) {
+        logger.info("run BCGISFeatureReader");
         this.state = contentState;
-        builder = new SimpleFeatureBuilder(state.getFeatureType());
+        this.builder = new SimpleFeatureBuilder(state.getFeatureType());
         bcgisDataStore = (BCGISDataStore)contentState.getEntry().getDataStore();
         totalCount = (int)bcgisDataStore.getCount().get(0);
         jsonArrayReadRange = JSONArray.parseArray(bcgisDataStore.getCount().get(1).toString());
