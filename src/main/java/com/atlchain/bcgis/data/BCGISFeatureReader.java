@@ -48,11 +48,11 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         logger.info("run BCGISFeatureReader");
         this.state = contentState;
         this.builder = new SimpleFeatureBuilder(state.getFeatureType());
-        bcgisDataStore = (BCGISDataStore)contentState.getEntry().getDataStore();
-        totalCount = (int)bcgisDataStore.getCount().get(0);
+        bcgisDataStore = (BCGISDataStore) contentState.getEntry().getDataStore();
+        totalCount = (int) bcgisDataStore.getCount().get(0);
         jsonArrayReadRange = JSONArray.parseArray(bcgisDataStore.getCount().get(1).toString());
         // 做一个判断 如何获取新值 大于等于小于 说明这一页读完，需解析下一页
-        if(index >= (int)jsonArrayReadRange.get(page)){
+        if (index >= (int) jsonArrayReadRange.get(page)) {
             geometry = bcgisDataStore.getRecord(page);
             jsonArray = bcgisDataStore.getProperty(page);
             tmpCount = 0;
@@ -121,7 +121,6 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         } else if (geometry == null){
             return  false;
         } else {
-            JSONObject jsonObject = new JSONObject();
             JSONArray json = new JSONArray();
             next = getFeature(geometry, json);
             return false;

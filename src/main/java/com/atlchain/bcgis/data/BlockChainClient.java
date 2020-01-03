@@ -86,7 +86,6 @@ public class BlockChainClient {
     public byte[][] getRecordByRangeByte(String recordKey, String chaincodeName, JSONArray jsonArray) {
         int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
         byte[][] byteMerger = null;
-        List<byte[][]> list = null;
         String startKey;
         String endKey;
         for(int i = 0; i < jsonArray.size() -1; i ++){
@@ -107,7 +106,6 @@ public class BlockChainClient {
 
         int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
         byte[][] byteMerger = null;
-        List<byte[][]> list = null;
         String startKey;
         String endKey;
         for(int i = 0; i < jsonArray.size() -1; i ++){
