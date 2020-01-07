@@ -94,10 +94,10 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         }else if(geometryType.contains("polygon")) {
             builder.add("geom", Polygon.class);
         }
-
         for(int i = 0; i < jsonArray.size(); i++){
             builder.add(jsonArray.get(i).toString(), String.class);
         }
+        logger.info("完成加载属性键值 ");
         final SimpleFeatureType SCHEMA = builder.buildFeatureType();
         return SCHEMA;
     }

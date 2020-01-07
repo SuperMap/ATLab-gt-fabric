@@ -32,7 +32,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/beijing/R.shp").getFile();
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
     // 点    /beijing/P.shp
     // 线    /BL/BL.shp       /beijing/R.shp
     // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp

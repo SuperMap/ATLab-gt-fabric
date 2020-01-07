@@ -78,17 +78,19 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
                 Geometry geom = geometry.getGeometryN(tmpCount);
                 JSONArray json = (JSONArray)jsonArray.get(tmpCount);
                 feature = getFeature(geom, json);
-            } else {
+            } else if(jsonArrayReadRange.size() > 2) {
                 // 新的一页，需要新的 数据和属性
                 page = page + 1;
                 tmpCount = 0;
                 geometry = null;
                 jsonArray = null;
                 geometry = bcgisDataStore.getRecord(page);
-                jsonArray = bcgisDataStore.getProperty(page);
-                Geometry geom = geometry.getGeometryN(tmpCount);
-                JSONArray json = (JSONArray)jsonArray.get(tmpCount);
-                feature = getFeature(geom, json);
+                if(geometry != null ) { // 小于0表示下一页没有了
+                    jsonArray = bcgisDataStore.getProperty(page);
+                    Geometry geom = geometry.getGeometryN(tmpCount);
+                    JSONArray json = (JSONArray) jsonArray.get(tmpCount);
+                    feature = getFeature(geom, json);
+                }
             }
 
         }
@@ -99,6 +101,9 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         if(geometry == null){
             return null;
         }
+        if(json.size() == 0){
+            return null;
+        }
         index ++;
         tmpCount ++;
 //        builder.set("geom", geometry);
@@ -106,6 +111,12 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         // 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一半空间
         List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
 //        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
+        if( list.size() - json.size() != 1){
+            int aa = list.size() - json.size();
+            System.out.println("出问题. aa = " + String.valueOf(aa));//  BL这里有问题，看是什么问题
+            System.out.println("LIST = " + list);
+            System.out.println("json = " + json);
+        }
         for(int k = 0; k < json.size(); k ++){
             String key = list.get(k + 1).getLocalName();
             String value = json.get(k).toString();

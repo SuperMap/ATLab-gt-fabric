@@ -125,7 +125,8 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
         String key = (String)KEY_PARAM.lookUp(params);
         String uri = (String) NAMESPACE.lookUp(params);
 
-        logger.info("key----------------------->" +key);
+        // TODO 在发布地图时这里会重复加载两次，需进一步明确原因
+        logger.info("file key is ----->" +key);
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 networkConfigFile,
                 shpConfigFile,

@@ -93,11 +93,11 @@ public class Shp2WkbTest {
      */
     @Test
     public void testQueryFromChain(){
-        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-0000175109";
-        String value = client.getRecord(key,"bcgiscc");
-        System.out.println(value);
+        String key = "prop6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
         for(int i = 0; i < 99; i++){
-            System.out.println(String.format("%0" + String.valueOf(5).length() + "d", i));
+            String strIndex = key + String.format("%04d", i);
+            String value = client.getRecord(strIndex,"bcgiscc");
+            System.out.println(value);
         }
     }
 
@@ -127,15 +127,14 @@ public class Shp2WkbTest {
     public void testDeleteByKey(){
         String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
         for(int i = 0; i < 100; i++) {
-            String strIndex = String.format("%04d", i);
-            System.out.println(strIndex);
+            String strIndex = key + String.format("%04d", i);
             String recordKey = key  + strIndex;
             String result = client.deleteRecord(
                     recordKey,
                     "bcgiscc",
                     "DeleteRecordByKey"
             );
-//            System.out.println(result + "====================》》》》》" + i);
+            System.out.println(result + "====>>>>>" + strIndex);
         }
     }
 
@@ -153,15 +152,6 @@ public class Shp2WkbTest {
         String s = Utils.readJsonFile(String.valueOf(geoJsonFile));
         System.out.println(s);
 //        JSONArray jsonArray = (JSONArray)JSON.parse(s);
-    }
-
-
-
-    @Test
-    public void test44(){
-        int t = 1111111;
-        String s = String.format("%010d", t);
-        System.out.println(s);
     }
 
     @Test
