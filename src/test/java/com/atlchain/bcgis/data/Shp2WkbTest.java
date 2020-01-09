@@ -2,6 +2,7 @@ package com.atlchain.bcgis.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.atlchain.bcgis.data.protoBuf.protoConvert;
+import com.atlchain.sdk.ATLChain;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.junit.Assert;
@@ -9,12 +10,15 @@ import org.junit.Test;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 
+import javax.json.JsonObject;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class Shp2WkbTest {
     private String shpURL = this.getClass().getResource("/Country_R/Country_R.shp").getFile();//   /Point/Point  /Country_R/Country_R.shp
@@ -42,8 +46,8 @@ public class Shp2WkbTest {
 
     @Test
     public void testSaveWKB(){
-            String path = "E:\\SuperMapData\\China\\Province_R.wkb";
-            shp2WKB.save(new File(path));
+        String path = "E:\\SuperMapData\\China\\Province_R.wkb";
+        shp2WKB.save(new File(path));
 //            Assert.assertTrue(Files.exists(Paths.get(path)));
     }
 
@@ -101,9 +105,8 @@ public class Shp2WkbTest {
         }
     }
 
-    /**
-     * 直接指定 键-值 存入到区块链
-     */
+
+    // 存值
     @Test
     public void testSaveToChain(){
         String key =  "testKey";
@@ -117,12 +120,32 @@ public class Shp2WkbTest {
         System.out.println(result);
     }
 
-    //   D               6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
-    //  BL              d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
-    //  P               b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b
-    /**
-     * 测试删除指定键值
-     */
+    // 查值
+    @Test
+    public void testQueryToChain(){
+        String key =  "testKey";
+        String queryString = client.getRecord(
+                key,
+                "bcgiscc",
+                "GetRecordByKey"
+        );
+        System.out.println(queryString);
+    }
+
+    // 删值
+    @Test
+    public void testDelte(){
+        String key =  "testKey";
+        String deleteString = client.deleteRecord(
+                key,
+                "bcgiscc",
+                "DeleteRecordByKey"
+        );
+        System.out.println(deleteString);
+
+    }
+
+    // 循环删除值
     @Test
     public void testDeleteByKey(){
         String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
@@ -136,12 +159,6 @@ public class Shp2WkbTest {
             );
             System.out.println(result + "====>>>>>" + strIndex);
         }
-    }
-
-    @Test
-    public void testSha256() {
-        String sha256 = Utils.getSHA256("bbb");
-        Assert.assertEquals("3e744b9dc39389baf0c5a0660589b8402f3dbb49b89b3e75f2c9355852a3c677", sha256);
     }
 
     @Test
@@ -159,4 +176,85 @@ public class Shp2WkbTest {
         shp2WKB.getShpFileAttributes();
     }
 
+    // CouchDB富查询测试（需在外部构建索引查询）
+    @Test
+    public void testQueryProp(){
+        String queryKey1 = "hash";
+        String queryValue1 = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8-0000";
+        String queryKey2 = "Name";
+        String queryValue2 = "aomen";
+        String queryKey3 = "hashIndex";
+        String queryValue3 = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
+
+        JSONObject json = new JSONObject();
+//        json.put(queryKey1, queryValue1);
+//        json.put(queryKey2, queryValue2);
+        json.put(queryKey3, queryValue3);
+
+//        String  selector = "{\"" + queryKey1 + "\":\"" + queryValue1 + "\"}";
+//        String  selector = "{\"hash\":\"" + queryValue1 + "\"}";
+//        stub.getQueryResult("{\"selector\":{\"Name\":\"" + name + "\", \"mapName\":\"" + mapName + "\"}}");
+        Set<String> keys = json.keySet();
+        StringBuilder qureySelector = new StringBuilder();
+        Boolean start = false;
+        int count = 1;
+        int total = keys.size();
+        qureySelector.append("{\"" );
+        for(String key : keys){
+            if(start){
+                qureySelector.append(",");
+                qureySelector.append("\"");
+            }
+            qureySelector.append(key);
+            qureySelector.append("\":\"");
+            qureySelector.append(json.getString(key));
+            if(count < total){
+                qureySelector.append("\"");
+            }
+            start = true;
+            count = count + 1;
+        }
+        qureySelector.append("\"}");
+        String selector1 = qureySelector.toString();
+        System.out.println(selector1);
+        String queryResult = client.getRecordBySeletor(
+                "bcgiscc",
+                "GetRecordBySelector",
+                selector1
+        );
+        System.out.println(queryResult);
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

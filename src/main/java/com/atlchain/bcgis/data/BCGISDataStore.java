@@ -5,32 +5,19 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import com.google.common.io.Files;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
-import org.geotools.data.DataSourceException;
 import org.geotools.data.Query;
-import org.geotools.data.shapefile.shp.ShapeType;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.NameImpl;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.Name;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -68,7 +55,7 @@ public class BCGISDataStore extends ContentDataStore {
             this.propResults = getPropDataFromChaincode();
         } else {
             try {
-                this.recordKey = putDataOnBlockchainByProto();
+                this.recordKey = putDataOnBlockchain(this.shpFile);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -96,7 +83,7 @@ public class BCGISDataStore extends ContentDataStore {
         JSONArray geometryProperty = shp2WKB.getShpFileAttributes();
         String geometryStr = Utils.getGeometryStr(geometryArrayList);
         String hash = Utils.getSHA256(geometryStr);
-        String key = fileName + hash;
+        String key = hash;
         System.out.println(key);
         String mapname = fileName.substring(0, fileName.lastIndexOf("."));
         JSONObject argsJson = new JSONObject();
@@ -116,6 +103,7 @@ public class BCGISDataStore extends ContentDataStore {
             JSONObject jsonObject = (JSONObject)JSON.parse(result1);
             String hash1 = (String) jsonObject.get("hash");
             if(hash1.equals(key)) {
+                logger.info("该文件已存储，可用以下hash值查询" + key);
                 return key;
             }
         } else {
@@ -166,6 +154,7 @@ public class BCGISDataStore extends ContentDataStore {
                 String contactKey = key + "-" + String.format("%0" + tempRang + "d", i);
                 JSONObject json = (JSONObject) geometryProperty.get(i);
                 json.put("hash", contactKey);
+                json.put("hashIndex", hash);
                 String propValue = json.toJSONString();
                 result = client.putRecord(
                         propKey,
@@ -208,7 +197,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 空间数据查询
+     * 获得空间数据信息
      * @return
      */
     public byte[][]  getGeometryDataFromChaincode(){
@@ -233,7 +222,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 属性查询
+     * 获得属性信息
      * @return
      */
     public byte[][]  getPropDataFromChaincode(){
@@ -328,18 +317,24 @@ public class BCGISDataStore extends ContentDataStore {
             for (byte[] resultByte : propResults) {
                 // 做判断 分页解析数据
                 if (pageCount == page) {
-                    String resultStr = "[" + new String(resultByte) + "]"; // 构造json
+                    String resultStr = null; // 构造json
+                    try {
+                        resultStr = "[" + new String(resultByte, "UTF-8") + "]";
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
                     JSONArray jsonArray = JSONArray.parseArray(resultStr);
 
                     for (Object obj : jsonArray) {
                         JSONObject json = (JSONObject) obj;
                         json.remove("hash");
+                        json.remove("hashIndex");
                         // 为节省空间，只将值传输给那边解析即可，键有顺序就行
                         Set<String> keys = json.keySet();
                         JSONArray jsonArrayTmp = new JSONArray();
                         for (String propKey : keys) {
                             String value = json.getString(propKey);
-                            if (value.length() == 0 || value.equals(null) ) {
+                            if (value.length() == 0) {
                                 jsonArrayTmp.add("null");
                             } else {
                                 jsonArrayTmp.add(value);
@@ -364,7 +359,7 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * 单个属性依靠 hash 查询 ==============>这种方式太慢了
+     * 单个属性依靠 hash 查询 （暂时用不着）
      * @param index
      * @return
      */
@@ -410,7 +405,7 @@ public class BCGISDataStore extends ContentDataStore {
         return list;
     }
 
-    // 获取存储的数据有多少个 和 分页情况
+    // 获取存储的数据有多少个geometry 和 分页情况
     public List<Object> getCount(){
         String result = client.getRecord(
                 this.recordKey,
@@ -430,48 +425,172 @@ public class BCGISDataStore extends ContentDataStore {
     }
 
     /**
-     * TODO 富查询做属性查询（后续再改）
-     * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，在进行一次查询
-     * @param stringList
+     * 富查询做属性查询(注意：需要首先在CouchDB中设置查询索引，不然数据量太大会查询超时)
+     * 以属性值和总的hash值作为查询手段，然后得到该属性的hash，再进行一次查询得到geometry
+     * 当返回的数据较大时采用分页返回形式（默认分页为1000）
+     * @param json
+     * @param page
      * @return
      */
-    public Geometry queryAttributes(List<String> stringList){
-        String attributesHash = client.getRecord(
-                stringList,
-                "bcgiscc",
-                "GetAttributesRecordByKey"
-        );
-        List<String> list = Arrays.asList(attributesHash.split("\n"));
-        int stringSize = list.get(0).length();
-        int listSize = list.size();
-        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
-        for(int i = 0; i < listSize ; i++){
-            String S1 = list.get(i);
-            String keyA = null;
-            if(S1.length() == stringSize){
-                keyA = S1.substring(10, stringSize);
-            }else {
-                continue;
+    public Geometry queryPropsByPage(JSONObject json, String page){
+        logger.info("默认分页为1000，若无法返回数据，   " +
+                "\n(1)请确认查询条件是否正确" +
+                "\n(2)使用 queryPropsByPage(JSONObject json, String page) 自定义分页(<1000)，避免数据量过大而返回不成功");
+        // 第一步 根据查询的条件设置为 selector 语句
+        Set<String> keys = json.keySet();
+        StringBuilder qureySelector = new StringBuilder();
+        Boolean start = false;
+        int count = 1;
+        int total = keys.size();
+        qureySelector.append("{\"" );
+        for(String key : keys){
+            if(start){
+                qureySelector.append(",");
+                qureySelector.append("\"");
             }
-            byte[][] result = client.getRecordBytes(
-                    keyA,
-                    "bcgiscc",
-                    "GetRecordByKey"
+            qureySelector.append(key);
+            qureySelector.append("\":\"");
+            qureySelector.append(json.getString(key));
+            if(count < total){
+                qureySelector.append("\"");
+            }
+            start = true;
+            count = count + 1;
+        }
+        qureySelector.append("\"}");
+        String selector = qureySelector.toString();
+        // 对分页返回的数据进行处理
+        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        GeometryCollection geometryCollection = null;
+        String bookMark = "";
+        String queryResultByPage = "null";
+        while (true) {
+            queryResultByPage = client.getRecordBySeletorByPage(
+                    this.chaincodeName,
+                    "GetRecordBySelectorByPagination",
+                    selector,
+                    page,
+                    bookMark
             );
+            JSONArray jsonArray = JSONArray.parseArray(queryResultByPage);
+            if(jsonArray.size() == 1){
+                break;
+            }
+            JSONObject tmpJson = (JSONObject) jsonArray.get(jsonArray.size() - 1);
+            bookMark = tmpJson.getString("Record");
 
-            Geometry geometry = null;
-            try {
-                geometry = Utils.getGeometryFromBytes(result[0]);
-                geometryArrayList.add(geometry);
-            } catch (ParseException e) {
-                e.printStackTrace();
+            // 解析查询得到的信息
+            for(int k = 0; k < jsonArray.size() - 1; k++){
+                // 3.1 解析信息得到 hash
+                JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(k).toString());
+                String tmpValue = jsonObject.getString("Record");
+                jsonObject = JSONObject.parseObject(tmpValue);
+                String hash = jsonObject.getString("hash");
+                // 3.2 根据 hash 得到 geometry
+                byte[][] re = client.getRecordBytes(
+                        hash,
+                        this.chaincodeName,
+                        this.functionName
+                );
+                Geometry geo = null;
+                try {
+                    geo = new WKBReader().read(re[0]);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                geometryArrayList.add(geo);
             }
         }
+
+
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
-        GeometryCollection geometryCollection = Utils.getGeometryCollection(geometries);
+        geometryCollection = Utils.getGeometryCollection(geometries);
+        if(geometryCollection == null){
+            return null;
+        }
         return geometryCollection;
     }
 
+    // 重载函数设置 page的默认值
+    public Geometry queryPropsByPage(JSONObject json){
+        logger.info("默认分页为1000，若无法返回数据，   " +
+                "\n(1)请确认查询条件是否正确" +
+                "\n(2)使用 queryPropsByPage(JSONObject json, String page) 自定义分页(<1000)，避免数据量过大而返回不成功");
+        // 第一步 根据查询的条件设置为 selector 语句
+        Set<String> keys = json.keySet();
+        StringBuilder qureySelector = new StringBuilder();
+        Boolean start = false;
+        int count = 1;
+        int total = keys.size();
+        qureySelector.append("{\"" );
+        for(String key : keys){
+            if(start){
+                qureySelector.append(",");
+                qureySelector.append("\"");
+            }
+            qureySelector.append(key);
+            qureySelector.append("\":\"");
+            qureySelector.append(json.getString(key));
+            if(count < total){
+                qureySelector.append("\"");
+            }
+            start = true;
+            count = count + 1;
+        }
+        qureySelector.append("\"}");
+        String selector = qureySelector.toString();
+        // 对分页返回的数据进行处理
+        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        GeometryCollection geometryCollection = null;
+        String bookMark = "";
+        String queryResultByPage = "null";
+        String page = String.valueOf(1000);
+        while (true) {
+            queryResultByPage = client.getRecordBySeletorByPage(
+                    this.chaincodeName,
+                    "GetRecordBySelectorByPagination",
+                    selector,
+                    page,
+                    bookMark
+            );
+            JSONArray jsonArray = JSONArray.parseArray(queryResultByPage);
+            if(jsonArray.size() == 1){
+                break;
+            }
+            JSONObject tmpJson = (JSONObject) jsonArray.get(jsonArray.size() - 1);
+            bookMark = tmpJson.getString("Record");
+
+            // 解析查询得到的信息
+            for(int k = 0; k < jsonArray.size() - 1; k++){
+                // 3.1 解析信息得到 hash
+                JSONObject jsonObject = JSONObject.parseObject(jsonArray.get(k).toString());
+                String tmpValue = jsonObject.getString("Record");
+                jsonObject = JSONObject.parseObject(tmpValue);
+                String hash = jsonObject.getString("hash");
+                // 3.2 根据 hash 得到 geometry
+                byte[][] re = client.getRecordBytes(
+                        hash,
+                        this.chaincodeName,
+                        this.functionName
+                );
+                Geometry geo = null;
+                try {
+                    geo = new WKBReader().read(re[0]);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                geometryArrayList.add(geo);
+            }
+        }
+
+
+        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+        geometryCollection = Utils.getGeometryCollection(geometries);
+        if(geometryCollection == null){
+            return null;
+        }
+        return geometryCollection;
+    }
     /**
      * 该名字会显示在编辑图层时的命名
      * @return

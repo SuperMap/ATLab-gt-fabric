@@ -1,9 +1,6 @@
 package com.atlchain.bcgis.data;
 
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.atlchain.bcgis.data.protoBuf.GeoDataOuterClass;
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentState;
@@ -15,10 +12,8 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.logging.Logger;
 
 public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
@@ -112,10 +107,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
 //        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
         if( list.size() - json.size() != 1){
-            int aa = list.size() - json.size();
-            System.out.println("出问题. aa = " + String.valueOf(aa));//  BL这里有问题，看是什么问题
-            System.out.println("LIST = " + list);
-            System.out.println("json = " + json);
+            logger.info("警告，请检查数据的属性是否缺失");
         }
         for(int k = 0; k < json.size(); k ++){
             String key = list.get(k + 1).getLocalName();

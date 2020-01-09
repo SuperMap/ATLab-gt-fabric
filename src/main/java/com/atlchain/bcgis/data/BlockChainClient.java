@@ -66,6 +66,24 @@ public class BlockChainClient {
         );
         return result;
     }
+
+    public String getRecordBySeletor(String chaincodeName, String functionName, String selector) {
+        String result = atlChain.query(
+                chaincodeName,
+                functionName,
+                new String[]{selector}
+        );
+        return result;
+    }
+
+    public String getRecordBySeletorByPage(String chaincodeName, String functionName, String selector, String page, String bookMark) {
+        String result = atlChain.query(
+                chaincodeName,
+                functionName,
+                new String[]{selector, page, bookMark}
+        );
+        return result;
+    }
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -93,7 +111,7 @@ public class BlockChainClient {
             endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
             byte[][] result = atlChain.queryByte(
                     chaincodeName,
-                    "GetRecordByKeyRangeByte",
+                    "GetRecordByKeyRangeByte", // GetRecordByKeyRangeByteNoBase64  GetRecordByKeyRangeByte
                     new byte[][]{startKey.getBytes(), endKey.getBytes()}
             );
             byteMerger = byteMerger(byteMerger, result, i);

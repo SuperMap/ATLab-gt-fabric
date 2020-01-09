@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.shapefile.ShapefileDataStore;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -135,7 +134,11 @@ public class Shp2Wkb {
                 JSONObject jsonObject = new JSONObject();
                 list = feature.getAttributes();
                 for(int k = 1; k < list.size(); k++ ){
-                    jsonObject.put(attributeID.get(k-1),  list.get(k));
+                    Object o = list.get(k);
+                    if(o == null){
+                        o = "";
+                    }
+                    jsonObject.put(attributeID.get(k-1),  o);
                 }
                 jsonArray.add(jsonObject);
                 i++;
@@ -147,7 +150,6 @@ public class Shp2Wkb {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return jsonArray;
     }
 }

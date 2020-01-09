@@ -11,7 +11,6 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Logger;

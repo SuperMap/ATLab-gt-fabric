@@ -32,7 +32,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
+    private String shpURL = this.getClass().getResource("/Country_R/Country_R.shp").getFile();
     // 点    /beijing/P.shp
     // 线    /BL/BL.shp       /beijing/R.shp
     // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp
@@ -286,25 +286,25 @@ public class BCGISDataStoreTest {
      */
     @Test
     public void testGetRecordByAttributes(){
-        List<String> stringList = new ArrayList<>();
-        String key = "taiwan";
-        String hash = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
-        //   D             6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4      属性  D
-        //  中国地图        23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8     属性 省市行政区名
-        stringList.add(key);
-        stringList.add(hash);
-        Geometry geometry = bcgisDataStore.queryAttributes(stringList);
-        System.out.println(geometry);
+        String queryKey1 = "hash";
+        String queryValue1 = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8-0000";
+        String queryKey2 = "Name";
+        String queryValue2 = "aomen";
+        String queryKey3 = "hashIndex";
+        String queryValue3 = "23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8";
+        JSONObject json = new JSONObject();
+//        json.put(queryKey1, queryValue1);
+//        json.put(queryKey2, queryValue2);
+        json.put(queryKey3, queryValue3);
+        String page = String.valueOf(100);
+        Geometry geometry = bcgisDataStore.queryPropsByPage(json, page);
         System.out.println(geometry.getNumGeometries());
     }
-
 
     /**
      * 基于 proto 格式实现属性查询------------------>根据 key 对应的多个 value进行查询
      *    ------>前提是前端在展示的时候，让用户进行属性查询时先确定查询的属性是什么？然后在填写查询的东西------->设计一个类似于搜索的东西
-     *
-     *    前端展示需要一个下拉列表框，展示现在具体有哪些属性，然后用户选择查询那个属性------>输入值，可输入多个
-     *                                                  可选择多个属性进行综合查询，然后输入属性查询
+     *    前端展示需要一个下拉列表框，展示现在具体有哪些属性，然后用户选择查询那个属性------>输入值，可输入多个      可选择多个属性进行综合查询，然后输入属性查询
      *    到时前端展示的时候只显示几个固定的查询框即可，后期在做上面的想法
      */
     @Test
@@ -336,4 +336,23 @@ public class BCGISDataStoreTest {
             System.out.println(o);
         }
     }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

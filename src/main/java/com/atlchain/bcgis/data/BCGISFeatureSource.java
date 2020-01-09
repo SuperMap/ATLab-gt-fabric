@@ -1,17 +1,13 @@
 package com.atlchain.bcgis.data;
 
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FeatureReader;
-import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
-import org.geotools.data.shapefile.shp.ShapefileHeader;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
-import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -24,7 +20,6 @@ import org.opengis.filter.Filter;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Logger;
 
 public class BCGISFeatureSource extends ContentFeatureSource {
