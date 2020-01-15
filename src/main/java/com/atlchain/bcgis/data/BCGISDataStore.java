@@ -56,6 +56,8 @@ public class BCGISDataStore extends ContentDataStore {
         } else {
             try {
                 this.recordKey = putDataOnBlockchain(this.shpFile);
+                this.geometryResults = getGeometryDataFromChaincode();
+                this.propResults = getPropDataFromChaincode();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -93,6 +95,7 @@ public class BCGISDataStore extends ContentDataStore {
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
 
+        double startTime = System.currentTimeMillis();
         // 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
         String result1 = client.getRecord(
                 key,
@@ -192,6 +195,9 @@ public class BCGISDataStore extends ContentDataStore {
                 return "Put data on chain FAILED! MESSAGE:" + result;
             }
             logger.info("整体信息存储完毕");
+            double endTime = System.currentTimeMillis();
+            double totalTime = (endTime - startTime)/1000;
+            System.out.println("总共耗时：" + totalTime + "s, 简单计算 TPS = " + geometryArrayList.size() / totalTime);
         }
         return result;
     }

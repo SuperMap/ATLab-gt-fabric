@@ -57,16 +57,6 @@ public class BlockChainClient {
         return result;
     }
 
-    // TODO 后期属性的增加在这里设置 String[] 自动获取里面的全部参数(属性查询时会用到)
-    public String getRecord(List<String> list, String chaincodeName, String functionName) {
-        String result = atlChain.query(
-                chaincodeName,
-                functionName,
-                new String[]{list.get(0), list.get(1)}
-        );
-        return result;
-    }
-
     public String getRecordBySeletor(String chaincodeName, String functionName, String selector) {
         String result = atlChain.query(
                 chaincodeName,

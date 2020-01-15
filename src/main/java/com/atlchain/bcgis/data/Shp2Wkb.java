@@ -135,14 +135,14 @@ public class Shp2Wkb {
                 list = feature.getAttributes();
                 for(int k = 1; k < list.size(); k++ ){
                     Object o = list.get(k);
-                    if(o == null){
-                        o = "";
+                    if(o == null || o.toString().length() == 0){
+                        o = "null";
                     }
                     jsonObject.put(attributeID.get(k-1),  o);
                 }
                 jsonArray.add(jsonObject);
                 i++;
-                if(String.valueOf(i).equals("246")){
+                if(String.valueOf(i).equals("247")){
                     System.out.println(i);
                 }
             }
