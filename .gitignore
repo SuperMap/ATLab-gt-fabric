@@ -7,4 +7,9 @@
 /bin/
 /src/main/main.iml
 .gradle/*
-/src/test/resources
+/src/test/resources/beijing/
+/src/test/resources/BL/
+/src/test/resources/certs/
+/src/test/resources/Country_R/
+/src/test/resources/D/
+/src/test/resources/Province/
