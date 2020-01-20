@@ -1,32 +1,28 @@
 package com.atlchain.bcgis.data;
 
 import com.alibaba.fastjson.JSONObject;
-import com.atlchain.bcgis.data.protoBuf.protoConvert;
-import com.atlchain.sdk.ATLChain;
-import org.geotools.data.FileDataStore;
-import org.geotools.data.FileDataStoreFinder;
+import com.supermap.blockchain.sdk.SmChain;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 
-import javax.json.JsonObject;
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 public class Shp2WkbTest {
-    private String shpURL = this.getClass().getResource("/Country_R/Country_R.shp").getFile();//   /Point/Point  /Country_R/Country_R.shp
-    private File shpFile = new File(shpURL);
-    private Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
+
+    private SmChain smChain;
     private BlockChainClient client;
     private File networkFile = new File("E:\\DemoRecording\\A_SuperMap\\ATLab-gt-fabric\\src\\test\\resources\\network-config-test.yaml");
+    private String channelName = "txchannel";
+
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();//   /Point/Point  /Country_R/Country_R.shp
+    private File shpFile = new File(shpURL);
+    private Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
     public Shp2WkbTest(){
+        smChain = SmChain.getSmChain(channelName, networkFile);
         client = new BlockChainClient(networkFile);
     }
 
@@ -46,25 +42,24 @@ public class Shp2WkbTest {
 
     @Test
     public void testSaveWKB(){
-        String path = "E:\\SuperMapData\\China\\Province_R.wkb";
+        String path = "E:\\SuperMapData\\Province_R.wkb";
         shp2WKB.save(new File(path));
 //            Assert.assertTrue(Files.exists(Paths.get(path)));
     }
 
     /**
-     * 将 shp 数据整个以二进制的方式存取区块链
+     * 测试存 byte 数组
      */
     @Test
     public void testSaveGeometryToChain() {
-//        String key =  "D";
-//        byte[] bytes = shp2WKB.getGeometryBytes();
-//        String result = client.putRecord(
-//                key,
-//                bytes,
-//                "bcgiscc",
-//                "PutRecordBytes"
-//        );
-//        System.out.println(result);
+        String key =  "D";
+        byte[] bytes = key.getBytes();
+        String s = smChain.getSmTransaction().invokeByte(
+                "bcgiscc",
+                "PutRecordBytes",
+                new byte[][]{ key.getBytes(), bytes}
+        );
+        System.out.println(s);
     }
 
     /**
@@ -73,49 +68,26 @@ public class Shp2WkbTest {
      */
     @Test
     public void testQueryGeometryFromChain() throws ParseException {
-        String key = "b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b-197585";
-        byte[][] result = client.getRecordBytes(
-                key,
+        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-0002";
+        byte[][] result1 = smChain.getSmTransaction().queryByte(
                 "bcgiscc",
-                "GetRecordByKey"
+                "GetRecordByKey",
+                new byte[][] {key.getBytes()}
         );
-        System.out.println(result);
-
-        // 单个可以读取出来
-        JSONObject jsonProp = protoConvert.getPropFromProto(result[0]);
-        System.out.println(jsonProp);
-        Geometry geometry = protoConvert.getGeometryFromProto(result[0]);
-        System.out.println(geometry);
-
-//        Geometry geometry = Utils.getGeometryFromBytes(result[0]);
+        Geometry geometry = Utils.getGeometryFromBytes(result1[0]);
 //        System.out.println(geometry);
-//        System.out.println(geometry.getNumGeometries());
+        System.out.println(geometry.getNumGeometries());
     }
-
-    /**
-     * 根据 hashID 查询数据
-     */
-    @Test
-    public void testQueryFromChain(){
-        String key = "prop6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
-        for(int i = 0; i < 99; i++){
-            String strIndex = key + String.format("%04d", i);
-            String value = client.getRecord(strIndex,"bcgiscc");
-            System.out.println(value);
-        }
-    }
-
 
     // 存值
     @Test
     public void testSaveToChain(){
         String key =  "testKey";
         String value = "testValue";
-        String result = client.putRecord(
-                key,
-                value,
+        String result = smChain.getSmTransaction().invoke(
                 "bcgiscc",
-                "PutRecordBytes"
+                "PutRecordBytes",
+                new String[] {key, value}
         );
         System.out.println(result);
     }
@@ -124,10 +96,10 @@ public class Shp2WkbTest {
     @Test
     public void testQueryToChain(){
         String key =  "testKey";
-        String queryString = client.getRecord(
-                key,
+        String queryString = smChain.getSmTransaction().query(
                 "bcgiscc",
-                "GetRecordByKey"
+                "GetRecordByKey",
+                new String[] {key}
         );
         System.out.println(queryString);
     }
@@ -136,43 +108,17 @@ public class Shp2WkbTest {
     @Test
     public void testDelte(){
         String key =  "testKey";
-        String deleteString = client.deleteRecord(
-                key,
+        String deleteString = smChain.getSmTransaction().invoke(
                 "bcgiscc",
-                "DeleteRecordByKey"
+                "DeleteRecordByKey",
+                new String[] {key}
         );
         System.out.println(deleteString);
 
     }
 
-    // 循环删除值
     @Test
-    public void testDeleteByKey(){
-        String key = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4-";
-        for(int i = 0; i < 100; i++) {
-            String strIndex = key + String.format("%04d", i);
-            String recordKey = key  + strIndex;
-            String result = client.deleteRecord(
-                    recordKey,
-                    "bcgiscc",
-                    "DeleteRecordByKey"
-            );
-            System.out.println(result + "====>>>>>" + strIndex);
-        }
-    }
-
-    @Test
-    public void testGeoJSON(){
-
-        String shpURL = "E:\\SuperMapData\\hu.json";
-        File geoJsonFile = new File(shpURL);
-        String s = Utils.readJsonFile(String.valueOf(geoJsonFile));
-        System.out.println(s);
-//        JSONArray jsonArray = (JSONArray)JSON.parse(s);
-    }
-
-    @Test
-    public void test22(){
+    public void testGetShpFileAttributes(){
         shp2WKB.getShpFileAttributes();
     }
 
@@ -191,8 +137,6 @@ public class Shp2WkbTest {
 //        json.put(queryKey2, queryValue2);
         json.put(queryKey3, queryValue3);
 
-//        String  selector = "{\"" + queryKey1 + "\":\"" + queryValue1 + "\"}";
-//        String  selector = "{\"hash\":\"" + queryValue1 + "\"}";
 //        stub.getQueryResult("{\"selector\":{\"Name\":\"" + name + "\", \"mapName\":\"" + mapName + "\"}}");
         Set<String> keys = json.keySet();
         StringBuilder qureySelector = new StringBuilder();

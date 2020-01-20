@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.atlchain.bcgis.data.protoBuf.protoConvert;
 import com.google.common.io.Files;
+import com.supermap.blockchain.sdk.SmChain;
 import org.geotools.data.Query;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
@@ -29,6 +30,7 @@ public class BCGISDataStore extends ContentDataStore {
     private String functionName;
     private String recordKey;
     private BlockChainClient client;
+    private SmChain smChain;
     private File shpFile;
     private byte[][] geometryResults ;
     private byte[][] propResults ;
@@ -48,9 +50,11 @@ public class BCGISDataStore extends ContentDataStore {
         this.chaincodeName = chaincodeName;
         this.functionName = functionName;
         client = new BlockChainClient(networkConfigFile);
+        smChain = SmChain.getSmChain("txchannel", networkConfigFile);
         this.shpFile = shpFile;
         if( !recordKey.equals("null") ){
             this.recordKey = recordKey; // 获取外界的  key 进行发布  先判断，假如有的话那就不再计算了
+            // TODO 测试时注释掉
             this.geometryResults = getGeometryDataFromChaincode();
             this.propResults = getPropDataFromChaincode();
         } else {
@@ -97,10 +101,10 @@ public class BCGISDataStore extends ContentDataStore {
 
         double startTime = System.currentTimeMillis();
         // 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
-        String result1 = client.getRecord(
-                key,
+        String result1 = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{key}
         );
         if(result1.length() != 0){
             JSONObject jsonObject = (JSONObject)JSON.parse(result1);
@@ -139,11 +143,10 @@ public class BCGISDataStore extends ContentDataStore {
                 }
                 String strIdex = String.format("%0" + tempRang + "d", i);
                 String recordKey = key + "-" + strIdex;
-                result = client.putRecord(
-                        recordKey,
-                        geoBytes,
+                result = smChain.getSmTransaction().invokeByte(
                         chaincodeName,
-                        "PutRecordBytes"
+                        "PutRecordBytes",
+                        new byte[][] {recordKey.getBytes(), geoBytes}
                 );
                 if (!result.contains("successfully")) {
                     return "Put data on chain FAILED! MESSAGE:" + result;
@@ -159,11 +162,10 @@ public class BCGISDataStore extends ContentDataStore {
                 json.put("hash", contactKey);
                 json.put("hashIndex", hash);
                 String propValue = json.toJSONString();
-                result = client.putRecord(
-                        propKey,
-                        propValue,
+                result = smChain.getSmTransaction().invoke(
                         chaincodeName,
-                        "PutRecord"
+                        "PutRecord",
+                        new String[]{propKey, propValue}
                 );
                 if (!result.contains("successfully")) {
                     return "Put data on chain FAILED! MESSAGE:" + result;
@@ -185,11 +187,10 @@ public class BCGISDataStore extends ContentDataStore {
             jsonArray.add(rang);
             argsJson.put("readRange", jsonArray);
             String args = argsJson.toJSONString();
-            result = client.putRecord(
-                    key,
-                    args,
-                    chaincodeName,
-                    "PutRecord"
+            result = smChain.getSmTransaction().invoke(
+                    this.chaincodeName,
+                    "PutRecord",
+                    new String[]{key, args}
             );
             if (!result.contains("successfully")) {
                 return "Put data on chain FAILED! MESSAGE:" + result;
@@ -207,10 +208,10 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public byte[][]  getGeometryDataFromChaincode(){
-        String result = client.getRecord(
-                this.recordKey,
+        String result = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{this.recordKey}
         );
         if(result.length() == 0){
             logger.info("please input correct recordKey");
@@ -232,10 +233,10 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public byte[][]  getPropDataFromChaincode(){
-        String result = client.getRecord(
-                this.recordKey,
+        String result = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{this.recordKey}
         );
         if(result.length() == 0){
             logger.info("please input correct recordKey");
@@ -370,10 +371,10 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public JSONObject getSinglePropFromChainCode(int index){
-        String result = client.getRecord(
-                this.recordKey,
+        String result = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{this.recordKey}
         );
         if(result.length() == 0){
             logger.info("please input correct recordKey");
@@ -381,9 +382,10 @@ public class BCGISDataStore extends ContentDataStore {
         JSONObject jsonObject = (JSONObject)JSON.parse(result);
         String rang = jsonObject.get("rang").toString();
         String propKey = "prop" + this.recordKey+ "-" + String.format("%0" + rang + "d", index);
-        String prop = client.getRecord(
-                propKey,
-                this.chaincodeName
+        String prop = smChain.getSmTransaction().query(
+                this.chaincodeName,
+                "GetRecordByKey",
+                new String[]{propKey}
         );
         JSONObject jsonProp = JSONObject.parseObject(prop);
         return jsonProp;
@@ -394,10 +396,10 @@ public class BCGISDataStore extends ContentDataStore {
      * @return
      */
     public List<Object> getPropertynName(){
-        String result = client.getRecord(
-                this.recordKey,
+        String result = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{this.recordKey}
         );
         if(result.length() == 0){
             logger.info("please input correct recordKey");
@@ -413,10 +415,10 @@ public class BCGISDataStore extends ContentDataStore {
 
     // 获取存储的数据有多少个geometry 和 分页情况
     public List<Object> getCount(){
-        String result = client.getRecord(
-                this.recordKey,
+        String result = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{this.recordKey}
         );
         if(result.length() == 0){
             logger.info("please input correct recordKey");
@@ -493,10 +495,10 @@ public class BCGISDataStore extends ContentDataStore {
                 jsonObject = JSONObject.parseObject(tmpValue);
                 String hash = jsonObject.getString("hash");
                 // 3.2 根据 hash 得到 geometry
-                byte[][] re = client.getRecordBytes(
-                        hash,
+                byte[][] re = smChain.getSmTransaction().queryByte(
                         this.chaincodeName,
-                        this.functionName
+                        this.functionName,
+                        new byte[][]{hash.getBytes()}
                 );
                 Geometry geo = null;
                 try {
@@ -507,8 +509,6 @@ public class BCGISDataStore extends ContentDataStore {
                 geometryArrayList.add(geo);
             }
         }
-
-
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         geometryCollection = Utils.getGeometryCollection(geometries);
         if(geometryCollection == null){
@@ -574,10 +574,10 @@ public class BCGISDataStore extends ContentDataStore {
                 jsonObject = JSONObject.parseObject(tmpValue);
                 String hash = jsonObject.getString("hash");
                 // 3.2 根据 hash 得到 geometry
-                byte[][] re = client.getRecordBytes(
-                        hash,
+                byte[][] re = smChain.getSmTransaction().queryByte(
                         this.chaincodeName,
-                        this.functionName
+                        this.functionName,
+                        new byte[][]{hash.getBytes()}
                 );
                 Geometry geo = null;
                 try {
@@ -588,8 +588,6 @@ public class BCGISDataStore extends ContentDataStore {
                 geometryArrayList.add(geo);
             }
         }
-
-
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         geometryCollection = Utils.getGeometryCollection(geometries);
         if(geometryCollection == null){
@@ -642,10 +640,10 @@ public class BCGISDataStore extends ContentDataStore {
         argsJson.put("geotype", geometryArrayList.get(0).getGeometryType());
         argsJson.put("PID", "");
         // 做判断，先根据hash查询整体信息，如果 hash 相同，则说明已经存储过，就不需要在存储，直接返回key
-        String result1 = client.getRecord(
-                key,
+        String result1 = smChain.getSmTransaction().query(
                 this.chaincodeName,
-                this.functionName
+                this.functionName,
+                new String[]{key}
         );
         if(result1.length() != 0){
             JSONObject jsonObject = (JSONObject)JSON.parse(result1);
@@ -690,11 +688,10 @@ public class BCGISDataStore extends ContentDataStore {
 
                 String strIdex = String.format("%0" + tempRang + "d", i);
                 String recordKey = key + "-" + strIdex;
-                result = client.putRecord(
-                        recordKey,
-                        geoBytes,
-                        chaincodeName,
-                        "PutRecordBytes"
+                result = smChain.getSmTransaction().invokeByte(
+                        this.chaincodeName,
+                        "PutRecordBytes",
+                        new byte[][]{recordKey.getBytes(), geoBytes}
                 );
                 if (!result.contains("successfully")) {
                     return "Put data on chain FAILED! MESSAGE:" + result;
@@ -705,11 +702,10 @@ public class BCGISDataStore extends ContentDataStore {
             argsJson.put("readRange", jsonArray);
             String args = argsJson.toJSONString();
             // 整体信息存储
-            result = client.putRecord(
-                    key,
-                    args,
-                    chaincodeName,
-                    "PutRecord"
+            result = smChain.getSmTransaction().invoke(
+                    this.chaincodeName,
+                    "PutRecord",
+                    new String[]{key, args}
             );
             if (!result.contains("successfully")) {
                 return "Put data on chain FAILED! MESSAGE:" + result;

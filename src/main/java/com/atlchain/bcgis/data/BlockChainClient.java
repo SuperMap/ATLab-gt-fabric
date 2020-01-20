@@ -1,10 +1,9 @@
 package com.atlchain.bcgis.data;
 
 import com.alibaba.fastjson.JSONArray;
-import com.atlchain.sdk.ATLChain;
+import com.supermap.blockchain.sdk.SmChain;
 
 import java.io.File;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -12,12 +11,11 @@ import java.util.logging.Logger;
  */
 public class BlockChainClient {
     Logger logger = Logger.getLogger(BlockChainClient.class.toString());
-    private ATLChain atlChain;
+    private SmChain smChain;
 
     BlockChainClient(File networkConfigFile) {
-        this.atlChain = new ATLChain(networkConfigFile);
+        smChain = SmChain.getSmChain("txchannel", networkConfigFile);
     }
-
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // 读取链上数据，通道名、链码名称、方法名有默认值
@@ -31,7 +29,12 @@ public class BlockChainClient {
 
     public byte[][] getRecordBytes(String recordKey, String chaincodeName, String functionName) {
         byte[] byteKey = recordKey.getBytes();
-        byte[][] result = atlChain.queryByte(
+//        byte[][] result = atlChain.queryByte(
+//                chaincodeName,
+//                functionName,
+//                new byte[][]{byteKey}
+//        );
+        byte[][] result = smChain.getSmTransaction().queryByte(
                 chaincodeName,
                 functionName,
                 new byte[][]{byteKey}
@@ -49,7 +52,7 @@ public class BlockChainClient {
 
     public String getRecord(String recordKey, String chaincodeName, String functionName) {
         String key = recordKey;
-        String result = atlChain.query(
+        String result = smChain.getSmTransaction().query(
                 chaincodeName,
                 functionName,
                 new String[]{key}
@@ -58,7 +61,7 @@ public class BlockChainClient {
     }
 
     public String getRecordBySeletor(String chaincodeName, String functionName, String selector) {
-        String result = atlChain.query(
+        String result = smChain.getSmTransaction().query(
                 chaincodeName,
                 functionName,
                 new String[]{selector}
@@ -67,7 +70,7 @@ public class BlockChainClient {
     }
 
     public String getRecordBySeletorByPage(String chaincodeName, String functionName, String selector, String page, String bookMark) {
-        String result = atlChain.query(
+        String result = smChain.getSmTransaction().query(
                 chaincodeName,
                 functionName,
                 new String[]{selector, page, bookMark}
@@ -81,8 +84,7 @@ public class BlockChainClient {
     public byte[][] getRecordByRange(String recordKey, String chaincodeName) {
         String startKey = recordKey + "-00000";
         String endKey = recordKey + "-99999";
-
-        byte[][] result = atlChain.queryByte(
+        byte[][] result = smChain.getSmTransaction().queryByte(
                 chaincodeName,
                 "GetRecordByKeyRange",
                 new byte[][]{startKey.getBytes(), endKey.getBytes()}
@@ -99,9 +101,9 @@ public class BlockChainClient {
         for(int i = 0; i < jsonArray.size() -1; i ++){
             startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
             endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
-            byte[][] result = atlChain.queryByte(
+            byte[][] result = smChain.getSmTransaction().queryByte(
                     chaincodeName,
-                    "GetRecordByKeyRangeByte", // GetRecordByKeyRangeByteNoBase64  GetRecordByKeyRangeByte
+                    "GetRecordByKeyRangeByte",
                     new byte[][]{startKey.getBytes(), endKey.getBytes()}
             );
             byteMerger = byteMerger(byteMerger, result, i);
@@ -119,7 +121,7 @@ public class BlockChainClient {
         for(int i = 0; i < jsonArray.size() -1; i ++){
             startKey = recordKey + "-" + String.format("%0" + tempRang + "d", jsonArray.get(i));
             endKey = recordKey + "-" + String.format("%0" + tempRang + "d", Integer.parseInt(jsonArray.getString(i + 1)));
-            byte[][] result = atlChain.queryByte(
+            byte[][] result = smChain.getSmTransaction().queryByte(
                     chaincodeName,
                     "GetRecordByKeyRange",
                     new byte[][]{startKey.getBytes(), endKey.getBytes()}
@@ -156,7 +158,7 @@ public class BlockChainClient {
 
     public String putRecord(String recordKey, byte[] record, String chaincodeName, String functionName) {
         byte[] byteKey = recordKey.getBytes();
-        String result = atlChain.invokeByte(
+        String result = smChain.getSmTransaction().invokeByte(
                 chaincodeName,
                 functionName,
                 new byte[][]{byteKey, record}
@@ -173,7 +175,7 @@ public class BlockChainClient {
     }
 
     public String putRecord(String recordKey, String record, String chaincodeName, String functionName) {
-        String result = atlChain.invoke(
+        String result = smChain.getSmTransaction().invoke(
                 chaincodeName,
                 functionName,
                 new String[]{recordKey, record}
@@ -187,7 +189,7 @@ public class BlockChainClient {
      * new add 删除当前世界状态库指定键的数据
      */
     public String deleteRecord(String recordKey, String chaincodeName, String functionName) {
-        String result = atlChain.invoke(
+        String result = smChain.getSmTransaction().invoke(
                 chaincodeName,
                 functionName,
                 new String[]{recordKey}

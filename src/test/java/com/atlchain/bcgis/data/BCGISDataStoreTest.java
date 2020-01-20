@@ -8,18 +8,10 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.map.FeatureLayer;
-import org.geotools.map.Layer;
-import org.geotools.map.MapContent;
-import org.geotools.styling.SLD;
-import org.geotools.styling.Style;
-import org.geotools.swing.JMapFrame;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
-import org.locationtech.jts.io.ParseException;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
@@ -32,18 +24,15 @@ import java.io.Serializable;
 import java.util.*;
 
 public class BCGISDataStoreTest {
-    private String shpURL = this.getClass().getResource("/Country_R/Country_R.shp").getFile();
-    // 点    /beijing/P.shp
-    // 线    /BL/BL.shp       /beijing/R.shp
-    // 面    /D/D.shp        /Country_R/Country_R.shp    /Province/Province_R.shp
+    private String shpURL = this.getClass().getResource("/D/D.shp").getFile();
     private File shpFile = new File(shpURL);
     private String chaincodeName = "bcgiscc";
-    //   D               6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
-    //  Province         23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
-    //  BL              d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
-    //  P               b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b
-    // Country_R.shp    8407bd3cd93d156e026b3cccba12035ef10b85b1ba1db31590296a153af7f3db
-    // beijing/R.shp    278934ff40e23d4a054144b495df7ca5eb0f764aa02d44f0cf02b8921539d8b1
+    // 点     /beijing/P.shp               b6a5833aba1f3a73e9d721a6df15defd00b17a3722491bb33b7700d37f288d5b
+    // 线     /BL/BL.shp                   d7e94bf0c86c94579e8b564d2dea995ed3746108f98f003fb555bcd41831f885
+    // 线     /beijing/R.shp              278934ff40e23d4a054144b495df7ca5eb0f764aa02d44f0cf02b8921539d8b1
+    // 面     /Country_R/Country_R.shp     8407bd3cd93d156e026b3cccba12035ef10b85b1ba1db31590296a153af7f3db
+    // 面     /D/D.shp                     6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4
+    // 面     /Province/Province_R.shp     23c5d6fc5e2794a264c72ae9e8e3281a7072696dc5f93697b8b5ef1e803fd3d8
     private String functionName = "GetRecordByKey";
     private String recordKey = "6bff876faa82c51aee79068a68d4a814af8c304a0876a08c0e8fe16e5645fde4";
 
@@ -54,8 +43,8 @@ public class BCGISDataStoreTest {
             shpFile,
             chaincodeName,
             functionName,
-            "null"
-//           recordKey
+//            "null"
+           recordKey
     );
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -67,7 +56,7 @@ public class BCGISDataStoreTest {
     }
 
     /**
-     * 获取名称（完成）
+     * 获取名称
      * @throws IOException
      */
     @Test
@@ -156,7 +145,7 @@ public class BCGISDataStoreTest {
     public void testGetDataStoreByParam() throws IOException {
         Map<String, Serializable> params = new HashMap<>();
         params.put("config", networkFile);
-        params.put("chaincodeName", "bincc");
+        params.put("chaincodeName", "bcgiscc");
         params.put("functionName", "GetByteArray");
         params.put("recordKey", "Line");
         DataStore store = DataStoreFinder.getDataStore(params);
@@ -168,8 +157,8 @@ public class BCGISDataStoreTest {
             while (reader.hasNext()) {
                 SimpleFeature feature = reader.next();
                 if (feature != null) {
-                    System.out.println("  " + feature.getID() + " " + feature.getAttribute("geom"));
-                    System.out.println(feature);
+//                    System.out.println("  " + feature.getID() + " " + feature.getAttribute("geom"));
+//                    System.out.println(feature);
 //                    Assert.assertNotNull(feature);
                     count++;
                 }
@@ -177,10 +166,9 @@ public class BCGISDataStoreTest {
         } finally {
             reader.close();
         }
-
-        String names[] = store.getTypeNames();
-        System.out.println("typenames: " + names.length);
-        System.out.println("typename[0]: " + names[0]);
+//        String names[] = store.getTypeNames();
+//        System.out.println("typenames: " + names.length);
+//        System.out.println("typename[0]: " + names[0]);
     }
 
     // test FeatureStore write function
@@ -248,8 +236,8 @@ public class BCGISDataStoreTest {
      */
     @Test
     public void testPutDataOnBlockchain() throws IOException, InterruptedException {
-        String result = bcgisDataStore.putDataOnBlockchain(shpFile);
-        System.out.println(result);
+//        String result = bcgisDataStore.putDataOnBlockchain(shpFile);
+//        System.out.println(result);
 //        Assert.assertTrue(result.contains("successfully"));
     }
 
@@ -321,8 +309,8 @@ public class BCGISDataStoreTest {
         value2.add("0137");    // 全部都一样
         json.put(key1, value1);
         json.put(key2, value2);
-        Geometry geometry = bcgisDataStore.queryAttributesByProto(json);
-        System.out.println(geometry.getNumGeometries());
+//        Geometry geometry = bcgisDataStore.queryAttributesByProto(json);
+//        System.out.println(geometry.getNumGeometries());
     }
 
     @Test
@@ -338,21 +326,4 @@ public class BCGISDataStoreTest {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

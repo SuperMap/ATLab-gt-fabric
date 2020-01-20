@@ -16,7 +16,7 @@ channels:
     orderers:
       - Orderer0
     peers:
-      OrgA:
+      peer0.orga.example.com:
         endorsingPeer: true
         chaincodeQuery: true
         ledgerQuery: true
@@ -32,17 +32,14 @@ organizations:
       - peer0.orga.example.com
 
     adminPrivateKey:
-#      path: E:\DemoRecording\A_SuperMap\ATLab-gt-fabric\src\test\resources\certs\user\user_sk
-      path: E:\crypto-config\peerOrganizations\orga.example.com\users\Admin@orga.example.com\msp\keystore\5e6ed6482a8c1c93d3fc0c1344fc63c8a32a987e79143b3598af1bc4708fe525_sk
+      path: E:\crypto-config\peerOrganizations\orga.example.com\users\Admin@orga.example.com\msp\keystore\9a5a824d8946332388679c34102d7bdd46d341452db436e7402dbc123edf1c28_sk
 
     signedCert:
-#      path: E:\DemoRecording\A_SuperMap\ATLab-gt-fabric\src\test\resources\certs\user\cert.pem
       path: E:\crypto-config\peerOrganizations\orga.example.com\users\Admin@orga.example.com\msp\signcerts\Admin@orga.example.com-cert.pem
 
 
 orderers:
   Orderer0:
-#    url: grpc://192.168.40.188:7050
     url: grpcs://orderer0.example.com:7050
     tlsCACerts:
       path: E:\crypto-config\ordererOrganizations\example.com\tlsca\tlsca.example.com-cert.pem
@@ -52,8 +49,7 @@ orderers:
       grpc.keepalive_timeout_ms: 180000
 
 peers:
-  OrgA:
-#    url: grpc://192.168.40.188:7051
+  peer0.orga.example.com:
     url: grpcs://peer0.orga.example.com:7051
     tlsCACerts:
       path: E:\crypto-config\peerOrganizations\orga.example.com\tlsca\tlsca.orga.example.com-cert.pem

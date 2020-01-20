@@ -53,10 +53,10 @@ dependencies {
     compile group: 'org.geotools', name: 'gt-swing', version: '21.1'
     compile group: 'org.geotools', name: 'gt-render', version: '21.1'
     compile group: 'org.geotools', name: 'gt-shapefile', version: '21.1'
-    compile group: 'org.hyperledger.fabric-sdk-java', name: 'fabric-sdk-java', version: '1.4.1'
-    compile group: 'com.alibaba', name: 'fastjson', version: '1.2.59'
+    compile group: 'org.hyperledger.fabric-sdk-java', name: 'fabric-sdk-java', version: '1.4.4'
+    compile group: 'com.alibaba', name: 'fastjson', version: '1.2.62'
 
-    compile files('libs/atlchain-sdk-0.0.3.jar')
+    compile files('libs/atlchain-sdk-0.0.4.jar')
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compile group: 'com.github.snowdream.android.util.concurrent', name: 'multithread', version: '1.0'
 
@@ -65,8 +65,6 @@ dependencies {
 
     // SLF4J
     testCompile group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.30'
-
-
 }
 
 //jar {
