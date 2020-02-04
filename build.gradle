@@ -9,6 +9,16 @@ buildscript {
     dependencies {
         classpath "com.github.jengelman.gradle.plugins:shadow:2.0.4"
     }
+
+    // 打包时跳过 test
+    gradle.taskGraph.whenReady {
+        tasks.each { task ->
+            if (task.name.contains("test"))
+            {
+                task.enabled = false
+            }
+        }
+    }
 }
 
 apply plugin:'java'

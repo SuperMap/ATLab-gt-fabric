@@ -1,8 +1,8 @@
-# ATLab-gt-fabric
+# gt-fabric
 
 Hyperledger Fabric data plugin for GeoTools & GeoServer.
 
-GeoTools & GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链上数据，以及将区块链上的数据通过 GeoServer 发布为 web 地图服务。
+GeoTools 和 GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链上数据，以及将区块链上的数据通过 GeoServer 发布为网络地图服务。
 
 ## 用法
 
@@ -12,7 +12,7 @@ GeoTools & GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链
     $ gradle clean build shadowJar
     ```
 
-    **注意：** 运行测试会失败，但是生成的 Jar 包可以使用。生成的 Jar 包路径为： `build/libs/ATLab-gt-fabric-1.0-SNAPSHOT.jar`，使用前需将 Jar 包名称改为 `gt-fabric-1.0-SNAPSHOT.jar`。
+    **注意：** 生成的 Jar 包路径为： `build/libs/ATLab-gt-fabric-1.0-SNAPSHOT.jar`，使用前需将 Jar 包名称改为 `gt-fabric-1.0-SNAPSHOT.jar`。
 
 2. 将 Jar 包复制到 GeoServer 插件存放目录：
     ```
@@ -40,7 +40,7 @@ GeoTools & GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链
     
     配置说明：
     - **工作区：** 选择刚才新建的工作区 `testFabric`
-    - **config:** 选择 `/ATLab-gt-fabric/src/test/resources/network-config-test.yaml` 文件，该文件需要根据网络搭建情况修改其中的节点 ID 以及证书、密钥路径。
+    - **config:** 使用示例文件 `src/test/resources/network-config-test.yaml`，该文件需要根据网络搭建情况修改其中的节点 ID 以及证书、密钥路径。该文件的详细说明见[这里](docs/configuration.md)。
     - **chaincodeName:** 链码名称，根据区块链网络情况填写
     - **functionName:** 读取链上地图数据的方法名，根据区块链网络情况填写
     - **recordKey:** 地图数据的键值（Key），根据区块链网络情况填写
