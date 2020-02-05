@@ -17,7 +17,6 @@ public class BlockChainClient {
         smChain = SmChain.getSmChain("txchannel", networkConfigFile);
     }
 
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // 读取链上数据，通道名、链码名称、方法名有默认值
     public byte[][] getRecordBytes(String recordKey) {
         return getRecordBytes(recordKey, "atlchaincc", "GetByteArray");
@@ -60,6 +59,13 @@ public class BlockChainClient {
         return result;
     }
 
+    /**
+     * 构造 selector 语句进行属性查询（测试用）
+     * @param chaincodeName
+     * @param functionName
+     * @param selector
+     * @return
+     */
     public String getRecordBySeletor(String chaincodeName, String functionName, String selector) {
         String result = smChain.getSmTransaction().query(
                 chaincodeName,
@@ -69,6 +75,15 @@ public class BlockChainClient {
         return result;
     }
 
+    /**
+     * 构造 selector 语句进行分页属性查询
+     * @param chaincodeName
+     * @param functionName
+     * @param selector
+     * @param page
+     * @param bookMark
+     * @return
+     */
     public String getRecordBySeletorByPage(String chaincodeName, String functionName, String selector, String page, String bookMark) {
         String result = smChain.getSmTransaction().query(
                 chaincodeName,
@@ -77,10 +92,13 @@ public class BlockChainClient {
         );
         return result;
     }
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    // 根据范围读取数据，范围按字典顺序排序
+    /**
+     * 根据范围读取数据，范围按字典顺序排序
+     * @param recordKey
+     * @param chaincodeName
+     * @return
+     */
     public byte[][] getRecordByRange(String recordKey, String chaincodeName) {
         String startKey = recordKey + "-00000";
         String endKey = recordKey + "-99999";
@@ -93,6 +111,14 @@ public class BlockChainClient {
     }
 
     // 2019.12.19根据提示的范围进行范围查询geometry（startkey包含------endkey不包含）
+
+    /**
+     * 根据自定义分页 JSONArray 和方法 GetRecordByKeyRangeByte 查询得到 byte[][] 形式的空间几何数据然后组合成结果返回
+     * @param recordKey
+     * @param chaincodeName
+     * @param jsonArray
+     * @return
+     */
     public byte[][] getRecordByRangeByte(String recordKey, String chaincodeName, JSONArray jsonArray) {
         int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
         byte[][] byteMerger = null;
@@ -112,6 +138,13 @@ public class BlockChainClient {
         return byteMerger;
     }
 
+    /**
+     * 根据自定义分页 JSONArray 和方法 GetRecordByKeyRange 查询得到 byte[][] 形式的空间几何数据的属性然后组合成结果返回
+     * @param recordKey
+     * @param chaincodeName
+     * @param jsonArray
+     * @return
+     */
     public byte[][] getRecordByRange(String recordKey, String chaincodeName, JSONArray jsonArray) {
 
         int tempRang = jsonArray.get(jsonArray.size() - 1).toString().length() + 2;
@@ -132,6 +165,13 @@ public class BlockChainClient {
         return byteMerger;
     }
 
+    /**
+     * 合并 byte[][]
+     * @param bt1
+     * @param bt2
+     * @param count
+     * @return
+     */
     public static byte[][] byteMerger(byte[][] bt1, byte[][] bt2, int count){
         byte[][] byteMerger = null;
         if(count == 0){
@@ -144,9 +184,6 @@ public class BlockChainClient {
         return byteMerger;
     }
 
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // 向链上写数据，通道名、链码名称、方法名有默认值，默认写入字符串“record”
     public String putRecord(String recordKey, byte[] record) {
         return putRecord(recordKey, record, "bincc", "PutRecordBytes");
@@ -182,11 +219,9 @@ public class BlockChainClient {
         );
         return result;
     }
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    // 删除当前世界状态库的数据
     /**
-     * new add 删除当前世界状态库指定键的数据
+     * 删除当前世界状态库指定键的数据
      */
     public String deleteRecord(String recordKey, String chaincodeName, String functionName) {
         String result = smChain.getSmTransaction().invoke(

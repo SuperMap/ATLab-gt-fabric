@@ -31,6 +31,11 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
 
     private ArrayList<Geometry> geometryArrayList = new ArrayList<>();
 
+    /**
+     * BCGISFeatureWriter 和 BCGISFeatureReader 构成代理关系
+     * @param state
+     * @param query
+     */
     public BCGISFeatureWriter(ContentState state, Query query) {
         logger.info("writer");
         this.state = state;
@@ -69,7 +74,7 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
             // defaultValues(SimpleFeatureType featureType) Produce a set of default values for the provided FeatureType
             Object values[] = DataUtilities.defaultValues(featureType);
 
-            this.currentFeature = SimpleFeatureBuilder.build(featureType, values,fid);
+            this.currentFeature = SimpleFeatureBuilder.build(featureType, values, fid);
             return  this.currentFeature;
         }catch (IllegalAttributeException invalid){
             throw new IOException("Unable to create feature :" + invalid.getMessage(), invalid);
@@ -79,7 +84,6 @@ public class BCGISFeatureWriter implements SimpleFeatureWriter {
     @Override
     public void remove() {
         currentFeature = null;
-
     }
 
     @Override

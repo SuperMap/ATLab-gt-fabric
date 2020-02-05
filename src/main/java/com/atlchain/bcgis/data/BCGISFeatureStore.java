@@ -20,6 +20,9 @@ public class BCGISFeatureStore extends ContentFeatureStore {
         super(entry, query);
     }
 
+    /**
+     * BCGISFeatureStore 和 BCGISFeatureSource 构成代理关系
+     */
     BCGISFeatureSource delegate = new BCGISFeatureSource(entry, query){
         @Override
         public void setTransaction(Transaction transaction) {

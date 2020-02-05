@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
+/**
+ * 主要功能是采用分页的方式将BCGISDataStore解析得到的geometry和属性信息加载到builder中
+ */
 public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
 
     Logger logger = Logger.getLogger(BCGISFeatureReader.class.toString());
@@ -27,15 +30,16 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
     private GeometryFactory geometryFactory;
     private int totalCount;
     private JSONArray jsonArrayReadRange;
+    // 记录有多少个geometry
     private int index = 0;
     private BCGISDataStore bcgisDataStore;
     // 记录分页用
     private int page = 0;
-    // 得到每一组 geometry 的序号
+    // 得到每一页 geometry 的序号
     private int tmpCount = 0;
 
     /**
-     * 分页解析空间数据和属性（考虑内存占用的问题）
+     * 分页解析空间数据和属性（解决内存占用过高的问题）
      * @param contentState
      * @param query
      */
@@ -46,7 +50,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         bcgisDataStore = (BCGISDataStore) contentState.getEntry().getDataStore();
         totalCount = (int) bcgisDataStore.getCount().get(0);
         jsonArrayReadRange = JSONArray.parseArray(bcgisDataStore.getCount().get(1).toString());
-        // 做一个判断 如何获取新值 大于等于小于 说明这一页读完，需解析下一页
+        // 做判断，因为为分页解析，当把当前页解析完之后就需要解析下一页
         if (index >= (int) jsonArrayReadRange.get(page)) {
             geometry = bcgisDataStore.getRecord(page);
             jsonArray = bcgisDataStore.getProperty(page);
@@ -68,7 +72,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
             feature = next;
             next = null;
         }else{
-            // 当  tmpCount 超过一页的时候就需要重新读取数据了
+            // 当  tmpCount 超过一页的时候就需要重新读取数据
             if(tmpCount < geometry.getNumGeometries()){
                 Geometry geom = geometry.getGeometryN(tmpCount);
                 JSONArray json = (JSONArray)jsonArray.get(tmpCount);
@@ -92,6 +96,12 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         return feature;
     }
 
+    /**
+     * 将 geometry 和属性解析到 builder 中
+     * @param geometry
+     * @param json
+     * @return
+     */
     private SimpleFeature getFeature(Geometry geometry, JSONArray json) {
         if(geometry == null){
             return null;
@@ -103,14 +113,13 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         tmpCount ++;
 //        builder.set("geom", geometry);
         builder.set("geom", geometryFactory.createGeometry(geometry));
-        // 下述方法可直接获取有哪些属性值，到时直接存入即可，不用JSON字符串，节省一半空间
+        // 直接获取已存入的属性值
         List<AttributeDescriptor> list = builder.getFeatureType().getAttributeDescriptors();
-//        System.out.println(list.get(0).getLocalName()); // 获取 builde 中有那些属性字段
         if( list.size() - json.size() != 1){
             logger.info("警告，请检查数据的属性是否缺失");
         }
         for(int k = 0; k < json.size(); k ++){
-            String key = list.get(k + 1).getLocalName();
+            String key = list.get(k + 1).getLocalName(); // 获取 builde 中有那些属性字段
             String value = json.get(k).toString();
             builder.set(key, value);
         }

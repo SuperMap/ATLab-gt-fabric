@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * 主要解析 shp 文件返回 geometry 和 属性
+ */
 public class Shp2Wkb {
     private File shpFile = null;
 
