@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Logger;
 
+/**
+ * 主要提供接口供GeoServer调用
+ */
 public class BCGISDataStoreFactory implements DataStoreFactorySpi {
 
     Logger logger = Logger.getLogger(BCGISDataStoreFactory.class.toString());
@@ -34,6 +37,7 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
     @Override
     public boolean isAvailable() { return true; }
 
+    // 定义调用该接口的几个配置文件参数
     public static final Param NAMESPACE
             = new Param("namespace", String.class, "Namespace URI", false);
     public static final Param NETWORK_CONFIG_PARAM
@@ -46,6 +50,7 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
             = new Param("chaincodeName", String.class, "chaincode name ", true, "bcgiscc");
     public static final Param FUNCTION_NAME_PARAM
             = new Param("functionName", String.class, "function name", true, "GetRecordByKey");
+
     @Override
     public Param[] getParametersInfo() {
         return new Param[] {
@@ -63,6 +68,12 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
         return DataUtilities.canProcess(params, getParametersInfo());
     }
 
+    /**
+     * 根据输入的文件或参数创建 DataStore
+     * @param params
+     * @return
+     * @throws IOException
+     */
     @Override
     public DataStore createDataStore(Map<String, Serializable> params) throws IOException {
 
@@ -82,6 +93,7 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
         File file_temp = null;
         File networkConfigFile = null;
 
+        // 加上“data_dir”是为了使其能加载相对路径的配置文件(下同)
         if(networkConfigFile_InputValue.exists()){
             networkConfigFile = networkConfigFile_InputValue;
         }else{
@@ -116,12 +128,14 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
             shpConfigFile = new File(new URL(shp_string_temp).getPath());
         }
 
+        // 配置输入参数
         String chaincodeName = (String)CC_NAME_PARAM.lookUp(params);
         String functionName = (String)FUNCTION_NAME_PARAM.lookUp(params);
         String key = (String)KEY_PARAM.lookUp(params);
         String uri = (String) NAMESPACE.lookUp(params);
 
         // TODO 在发布地图时这里会重复加载两次，需进一步明确原因
+        // 根据读取的配置文件构造 BCGISDataStore
         logger.info("file key is ----->" +key);
         BCGISDataStore bcgisDataStore = new BCGISDataStore(
                 networkConfigFile,

@@ -31,12 +31,21 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         super(entry, query);
     }
 
+    /**
+     * 构造 getDataStore 得到 BCGISDataStore
+     * @return
+     */
     public BCGISDataStore getDataStore() {
 
         return (BCGISDataStore) super.getDataStore();
     }
 
-    // TODO 该处范围计算会计算两次，看如何改进
+    /**
+     * 计算展示范围
+     * @param query
+     * @return
+     * @throws IOException
+     */
     @Override
     protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
 
@@ -76,6 +85,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         String geometryType = list.get(0).toString().toLowerCase();
         JSONArray jsonArray = (JSONArray) list.get(1);
 
+        // 判断geometry的类型，注意多点线面在前，单点线面在后
         if(geometryType.equals("multipoint")) {
             builder.add("geom", MultiPoint.class);
         }else if(geometryType.equals("point")) {
