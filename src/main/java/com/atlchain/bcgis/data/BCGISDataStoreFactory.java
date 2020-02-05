@@ -29,7 +29,7 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
     public String getDisplayName() { return "BCGIS"; }
 
     @Override
-    public String getDescription() { return "Fabric database"; }
+    public String getDescription() { return "Fabric Database"; }
 
     @Override
     public boolean isAvailable() { return true; }
