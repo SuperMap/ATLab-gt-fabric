@@ -4,6 +4,8 @@ Hyperledger Fabric data plugin for GeoTools & GeoServer.
 
 GeoTools 和 GeoServer 的 Hyperledger Fabric 数据插件，用于读取区块链上数据，以及将区块链上的数据通过 GeoServer 发布为网络地图服务。
 
+**注意：** 目前只支持 geoserver 2.15.x 版本。
+
 ## 用法
 
 1. 进入项目目录，运行如下命令生成插件 jar 包：
